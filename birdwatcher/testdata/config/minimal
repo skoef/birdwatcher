@@ -1,0 +1,6 @@
+# something here
+
+[services]
+  [services."foo"]
+    command = "/usr/bin/true"
+    prefixes = ["192.168.0.0/24"]
