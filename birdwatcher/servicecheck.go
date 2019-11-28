@@ -9,13 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ServiceState represents the state the service is considered to be in
 type ServiceState string
 
 const (
+	// ServiceStateDown considers the service to be down
 	ServiceStateDown ServiceState = "down"
-	ServiceStateUp   ServiceState = "up"
+	// ServiceStateUp considers the service to be up
+	ServiceStateUp ServiceState = "up"
 )
 
+// ServiceCheck is the struct for holding all information and state about a
+// specific service health check
 type ServiceCheck struct {
 	name               string
 	Command            string
@@ -30,6 +35,8 @@ type ServiceCheck struct {
 	stopped            chan interface{}
 }
 
+// Start starts the process of health checking its service and sends actions to
+// the action channel when service state changes
 func (s *ServiceCheck) Start(action *chan *Action) {
 	s.stopped = make(chan interface{})
 	ticker := time.NewTicker(time.Second * time.Duration(s.Interval))
@@ -80,7 +87,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 					}
 					// or are we still in the process of coming up
 				} else {
-					upCounter += 1
+					upCounter++
 
 					log.WithFields(log.Fields{
 						"service":   s.name,
@@ -114,7 +121,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 						*action <- s.getAction()
 					}
 				} else {
-					downCounter += 1
+					downCounter++
 
 					log.WithFields(log.Fields{
 						"service":  s.name,
@@ -127,6 +134,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 	}
 }
 
+// Stop stops the service check from running
 func (s *ServiceCheck) Stop() {
 	s.stopped <- true
 

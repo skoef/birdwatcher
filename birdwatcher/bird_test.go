@@ -28,6 +28,8 @@ func TestWriteBirdConfig(t *testing.T) {
 	fixture, err := ioutil.ReadFile("testdata/bird/config_empty")
 	require.NoError(t, err)
 
+	assert.Equal(t, fixture, data)
+
 	// write bird config to it
 	err = writeBirdConfig(tmpFile.Name(), "match_route", []net.IPNet{
 		{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{255, 255, 255, 255}},

@@ -10,6 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// HealthCheck -- struct holding everything needed for the never-ending health
+// check loop
 type HealthCheck struct {
 	stopped  chan interface{}
 	actions  chan *Action
@@ -17,6 +19,7 @@ type HealthCheck struct {
 	Config   Config
 }
 
+// NewHealthCheck returns a HealthCheck with given configuration
 func NewHealthCheck(c Config) HealthCheck {
 	h := HealthCheck{}
 	h.Config = c
@@ -24,6 +27,8 @@ func NewHealthCheck(c Config) HealthCheck {
 	return h
 }
 
+// Start starts the process of health checking the services and handling
+// Actions that come from them
 func (h *HealthCheck) Start(services []*ServiceCheck) {
 	// create channel for service check to push there events on
 	h.actions = make(chan *Action, 16)
@@ -201,6 +206,7 @@ func (h *HealthCheck) removePrefix(prefix net.IPNet) {
 	}).Warn("prefix not found in list, skipping")
 }
 
+// Stop signals all servic checks to stop as well and then stops itself
 func (h *HealthCheck) Stop(services []*ServiceCheck) {
 	// signal each service to stop
 	for _, s := range services {

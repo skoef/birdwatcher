@@ -9,14 +9,6 @@ import (
 	"os"
 )
 
-type BirdConfig struct {
-	EnableIPv4   bool
-	EnableIPv6   bool
-	ConfigIPv4   string
-	ConfigIPv6   string
-	FunctionName string
-}
-
 var (
 	errConfigIdentical = errors.New("configuration file is identical")
 )
