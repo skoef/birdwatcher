@@ -14,7 +14,7 @@ func TestServiceCheckPushChannel(t *testing.T) {
 		name:               "test",
 		Command:            "/usr/bin/true",
 		Fail:               3,
-		Rise:               1,
+		Rise:               2,
 		Interval:           1,
 		Timeout:            2,
 		prefixes: []net.IPNet{

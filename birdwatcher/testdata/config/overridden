@@ -11,8 +11,8 @@ reloadcommand = "/usr/bin/birdc6 configure"
 
 [services]
   [services."foo"]
-  command = "/bin/true"
-  prefixes = ["192.168.0.0/24"]
+    command = "/bin/true"
+    prefixes = ["192.168.0.0/24"]
   [services."bar"]
-  command = "/bin/false"
-  prefixes = ["192.168.1.0/24", "192.168.2.0/25"]
+    command = "/bin/false"
+    prefixes = ["192.168.1.0/24", "192.168.2.0/25"]
