@@ -5,6 +5,7 @@ import (
 	"context"
 	"net"
 	"os/exec"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -133,8 +134,12 @@ func (h *HealthCheck) applyConfig(config protoConfig, prefixes []net.IPNet) erro
 	ctx, cancel := context.WithTimeout(context.Background(), reloadTimeout)
 	defer cancel()
 
+	// split reload command into command/args assuming the first part is the command
+	// and the rest are the arguments
+	commandArgs := strings.Split(config.ReloadCommand, " ")
+
 	// set up command execution within that context
-	cmd := exec.CommandContext(ctx, config.ReloadCommand)
+	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
 
 	// get exit code of command
 	output, err := cmd.Output()
@@ -155,6 +160,7 @@ func (h *HealthCheck) applyConfig(config protoConfig, prefixes []net.IPNet) erro
 		log.WithFields(log.Fields{
 			"command": config.ReloadCommand,
 			"output":  output,
+			"error":   err.Error(),
 		}).Warning("reloading failed")
 	} else {
 		log.WithFields(log.Fields{

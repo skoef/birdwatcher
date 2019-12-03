@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"os/exec"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -165,8 +166,12 @@ func (s *ServiceCheck) performCheck(action *chan *Action) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.Timeout)*time.Second)
 	defer cancel()
 
+	// split reload command into command/args assuming the first part is the command
+	// and the rest are the arguments
+	commandArgs := strings.Split(s.Command, " ")
+
 	// set up command execution within that context
-	cmd := exec.CommandContext(ctx, s.Command)
+	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
 
 	// get exit code of command
 	output, err := cmd.Output()
@@ -182,6 +187,7 @@ func (s *ServiceCheck) performCheck(action *chan *Action) error {
 		log.WithFields(log.Fields{
 			"service": s.name,
 			"command": s.Command,
+			"error":   err.Error(),
 			"output":  output,
 		}).Debug("check output")
 	}
