@@ -16,6 +16,13 @@ var (
 func updateBirdConfig(filename, functionName string, prefixes []net.IPNet) error {
 	// write config to temp file
 	tmpFilename := fmt.Sprintf("%s.tmp", filename)
+	// make sure we don't keep tmp file around when something goes wrong
+	defer func(x string) {
+		if _, err := os.Stat(x); !os.IsNotExist(err) {
+			os.Remove(tmpFilename)
+		}
+	}(tmpFilename)
+
 	if err := writeBirdConfig(tmpFilename, functionName, prefixes); err != nil {
 		return err
 	}
