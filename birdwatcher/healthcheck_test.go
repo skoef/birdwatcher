@@ -65,3 +65,30 @@ func TestHealthCheckAddRemovePrefix(t *testing.T) {
 	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, hc.prefixes[1])
 	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, hc.prefixes[0])
 }
+
+func TestHealthCheckDidReloadBefore(t *testing.T) {
+	hc := NewHealthCheck(Config{})
+
+	// expect both to fail
+	assert.Equal(t, false, hc.didReloadBefore("ipv4"))
+	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
+
+	hc.reloads["ipv4"] = true
+
+	// expect only IPv6 to fail
+	assert.Equal(t, true, hc.didReloadBefore("ipv4"))
+	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
+
+	hc.reloads["ipv6"] = true
+
+	// expect both to succeed
+	assert.Equal(t, true, hc.didReloadBefore("ipv4"))
+	assert.Equal(t, true, hc.didReloadBefore("ipv6"))
+
+	hc.reloads["ipv4"] = false
+	hc.reloads["ipv6"] = false
+
+	// expect both to fail again
+	assert.Equal(t, false, hc.didReloadBefore("ipv4"))
+	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
+}
