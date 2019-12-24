@@ -18,12 +18,14 @@ type HealthCheck struct {
 	actions  chan *Action
 	prefixes []net.IPNet
 	Config   Config
+	reloads  map[string]bool
 }
 
 // NewHealthCheck returns a HealthCheck with given configuration
 func NewHealthCheck(c Config) HealthCheck {
 	h := HealthCheck{}
 	h.Config = c
+	h.reloads = make(map[string]bool)
 
 	return h
 }
@@ -64,6 +66,11 @@ func (h *HealthCheck) Start(services []*ServiceCheck) {
 	}
 }
 
+func (h *HealthCheck) didReloadBefore(protocol string) bool {
+	reloaded, found := h.reloads[protocol]
+	return (reloaded && found)
+}
+
 func (h *HealthCheck) handleAction(action *Action) {
 	for _, p := range action.Prefixes {
 		if action.State == ServiceStateUp {
@@ -80,7 +87,7 @@ func (h *HealthCheck) handleAction(action *Action) {
 	}
 
 	if h.Config.IPv4.Enable {
-		h.applyConfig(h.Config.IPv4, func(f []net.IPNet) []net.IPNet {
+		h.applyConfig("ipv4", h.Config.IPv4, func(f []net.IPNet) []net.IPNet {
 			r := make([]net.IPNet, 0)
 			for _, p := range f {
 				if p.IP.To4().Equal(p.IP) {
@@ -92,7 +99,7 @@ func (h *HealthCheck) handleAction(action *Action) {
 	}
 
 	if h.Config.IPv6.Enable {
-		h.applyConfig(h.Config.IPv6, func(f []net.IPNet) []net.IPNet {
+		h.applyConfig("ipv6", h.Config.IPv6, func(f []net.IPNet) []net.IPNet {
 			r := make([]net.IPNet, 0)
 			for _, p := range f {
 				if len(p.IP) == net.IPv6len {
@@ -104,23 +111,35 @@ func (h *HealthCheck) handleAction(action *Action) {
 	}
 }
 
-func (h *HealthCheck) applyConfig(config protoConfig, prefixes []net.IPNet) error {
+func (h *HealthCheck) applyConfig(protocol string, config protoConfig, prefixes []net.IPNet) error {
 	var err error
 	// update bird config
 	err = updateBirdConfig(config.ConfigFile, config.FunctionName, prefixes)
 	if err != nil {
+		// if config did not change, we should still reload if we don't know the
+		// state of BIRD
 		if err == errConfigIdentical {
+			if h.didReloadBefore(protocol) {
+				log.WithFields(log.Fields{
+					"file": config.ConfigFile,
+				}).Warning("config did not change, not reloading")
+
+				return err
+			}
+
 			log.WithFields(log.Fields{
 				"file": config.ConfigFile,
-			}).Warning("config did not change")
+			}).Info("config did not change, but reloading anyway")
+
+			// break on any other error
 		} else {
 			log.WithFields(log.Fields{
 				"file":  config.ConfigFile,
 				"error": err.Error(),
 			}).Warning("error updating configuration")
-		}
 
-		return err
+			return err
+		}
 	}
 
 	log.WithFields(log.Fields{
@@ -166,6 +185,9 @@ func (h *HealthCheck) applyConfig(config protoConfig, prefixes []net.IPNet) erro
 		log.WithFields(log.Fields{
 			"command": config.ReloadCommand,
 		}).Debug("reloading succeeded")
+
+		// mark succesful reload
+		h.reloads[protocol] = true
 	}
 
 	return err
