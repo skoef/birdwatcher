@@ -11,15 +11,15 @@ import (
 
 // Config -- struct for holding definitions from configuration file
 type Config struct {
-	IPv4     protoConfig
-	IPv6     protoConfig
-	Services map[string]*ServiceCheck
+	IPv4         protoConfig
+	IPv6         protoConfig
+	FunctionName string
+	Services     map[string]*ServiceCheck
 }
 
 type protoConfig struct {
 	Enable        bool
 	ConfigFile    string
-	FunctionName  string
 	ReloadCommand string
 }
 
@@ -42,20 +42,12 @@ func ReadConfig(conf *Config, configFile string) error {
 		conf.IPv4.ConfigFile = "/etc/bird/birdwatcher.conf"
 	}
 
-	if conf.IPv4.FunctionName == "" {
-		conf.IPv4.FunctionName = "match_route"
-	}
-
 	if conf.IPv4.ReloadCommand == "" {
 		conf.IPv4.ReloadCommand = "/usr/sbin/birdc configure"
 	}
 
 	if conf.IPv6.ConfigFile == "" {
 		conf.IPv6.ConfigFile = "/etc/bird/birdwatcher6.conf"
-	}
-
-	if conf.IPv6.FunctionName == "" {
-		conf.IPv6.FunctionName = "match_route"
 	}
 
 	if conf.IPv6.ReloadCommand == "" {
@@ -70,6 +62,10 @@ func ReadConfig(conf *Config, configFile string) error {
 	for name, s := range conf.Services {
 		// copy service name to ServiceCheck
 		s.name = name
+
+		if s.FunctionName == "" {
+			s.FunctionName = "match_route"
+		}
 
 		// validate service
 		if err := conf.validateService(s); err != nil {
