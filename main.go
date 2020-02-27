@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -24,6 +26,7 @@ func main() {
 
 	fs := flag.NewFlagSet("birdwatcher", flag.ContinueOnError)
 	configFile := fs.String("config", "", "config file (defaults to /etc/birdwatcher.conf)")
+	checkConfig := fs.Bool("check-config", false, "check config file and exit")
 	debug := fs.Bool("debug", false, "increase loglevel to debug")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -43,7 +46,18 @@ func main() {
 	}).Debug("Opening configuration file")
 
 	if err := birdwatcher.ReadConfig(&config, *configFile); err != nil {
+		// return slightly different message when birdwatcher was invoked with -check-config
+		if *checkConfig {
+			fmt.Printf("Configuration file %s not OK: %s\n", *configFile, errors.Unwrap(err))
+			os.Exit(1)
+		}
+
 		log.Fatal(err.Error())
+	}
+
+	if *checkConfig {
+		fmt.Printf("Configuration file %s OK\n", *configFile)
+		os.Exit(0)
 	}
 
 	// start health checker
