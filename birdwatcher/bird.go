@@ -57,13 +57,13 @@ func writeBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixColl
 	return err
 }
 
-func compareFiles(a, b string) bool {
-	data, err := ioutil.ReadFile(a)
+func compareFiles(fileA, fileB string) bool {
+	data, err := ioutil.ReadFile(fileA)
 	if err != nil {
 		return false
 	}
 
-	datb, err := ioutil.ReadFile(b)
+	datb, err := ioutil.ReadFile(fileB)
 	if err != nil {
 		return false
 	}
