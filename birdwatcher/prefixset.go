@@ -95,7 +95,7 @@ func (p PrefixSet) Marshal(family PrefixFamily) string {
 		suffix := ","
 		for i, pref := range prefixes {
 			// if this is the last entry, we don't need a trailing comma
-			if i == len(p.prefixes)-1 {
+			if i == len(prefixes)-1 {
 				suffix = ""
 			}
 			output += fmt.Sprintf("\t\t%s%s\n", pref.String(), suffix)

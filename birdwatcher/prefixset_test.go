@@ -2,6 +2,8 @@ package birdwatcher
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"net"
 	"testing"
 )
@@ -84,7 +86,7 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	fixture, err := ioutil.ReadFile("testdata/prefixset/no_prefixes")
 	require.NoError(t, err)
 	// should represent empty function returning false
-	assert.Equal(t, string(fixture), p.Marshal())
+	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
 
 	// add some prefixes
 	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{255, 255, 255, 255}})
@@ -92,10 +94,27 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 6}, Mask: net.IPMask{255, 255, 255, 0}})
 	p.Add(net.IPNet{IP: net.IP{4, 5, 6, 7}, Mask: net.IPMask{255, 255, 248, 0}})
 
+	// since these prefixes are only IPv4, IPv6 output should still be the same
+	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))
+
+	// IPv4 should represent function matching above prefixes
 	fixture, err = ioutil.ReadFile("testdata/prefixset/some_prefixes")
 	require.NoError(t, err)
-	// should represent function matching above prefixes
-	assert.Equal(t, string(fixture), p.Marshal())
+	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
+
+	// add IPv6 prefixes
+	_, pref, _ := net.ParseCIDR("2001::/64")
+	p.Add(*pref)
+	_, pref, _ = net.ParseCIDR("2002::/48")
+	p.Add(*pref)
+
+	// IPv4 output should still be the same
+	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
+
+	// IPv6 should represent the two prefixes
+	fixture, err = ioutil.ReadFile("testdata/prefixset/some_prefixes_v6")
+	require.NoError(t, err)
+	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))
 
 	// if we change the function name, it should reflect in the output
 	p.functionName = "something_else"
@@ -103,5 +122,5 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	fixture, err = ioutil.ReadFile("testdata/prefixset/function_name")
 	require.NoError(t, err)
 	// should represent function matching above prefixes
-	assert.Equal(t, string(fixture), p.Marshal())
+	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
 }
