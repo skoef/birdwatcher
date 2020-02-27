@@ -1,0 +1,15 @@
+[Unit]
+Description=healthchecker for BIRD-anycasted services
+Documentation=https://github.com/skoef/birdwatcher
+After=bird.service
+After=bird6.service
+
+[Service]
+Type=simple
+Environment=CONFIG_FILE=/etc/birdwatcher.conf
+ExecStartPre=/usr/bin/birdwatcher -config ${CONFIG_FILE} -check-config
+ExecStart=/usr/bin/birdwatcher -config ${CONFIG_FILE}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
