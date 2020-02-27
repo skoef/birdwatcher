@@ -3,17 +3,22 @@ package birdwatcher
 import (
 	"bytes"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // PrefixCollection represents prefixsets per function name
 type PrefixCollection map[string]*PrefixSet
 
+// PrefixFamily is either ipv4 or ipv6
+// Using these instead of the strings themselves prevents using unsupported families
 type PrefixFamily string
 
 const (
+	// PrefixFamilyIPv4 represents IPv4 prefixes
 	PrefixFamilyIPv4 = "ipv4"
+	// PrefixFamilyIPv6 represents IPv6 prefixes
 	PrefixFamilyIPv6 = "ipv6"
 )
 
