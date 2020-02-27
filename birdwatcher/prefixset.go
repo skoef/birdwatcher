@@ -7,9 +7,19 @@ import (
 	"net"
 )
 
+// PrefixCollection represents prefixsets per function name
+type PrefixCollection map[string]*PrefixSet
+
+type PrefixFamily string
+
+const (
+	PrefixFamilyIPv4 = "ipv4"
+	PrefixFamilyIPv6 = "ipv6"
+)
+
 // PrefixSet represents a list of prefixes alongside a function name
 type PrefixSet struct {
-	prefixes []net.IPNet
+	prefixes     []net.IPNet
 	functionName string
 }
 
@@ -62,11 +72,19 @@ func (p *PrefixSet) Remove(prefix net.IPNet) {
 }
 
 // Marshal returns the BIRD function for this prefixset
-func (p PrefixSet) Marshal() string {
+func (p PrefixSet) Marshal(family PrefixFamily) string {
 	// begin of function
 	output := fmt.Sprintf("function %s()\n{\n\treturn ", p.functionName)
 
-	if len(p.prefixes) == 0 {
+	var prefixes []net.IPNet
+	switch family {
+	case PrefixFamilyIPv4:
+		prefixes = prefixesIPv4Only(p.prefixes)
+	case PrefixFamilyIPv6:
+		prefixes = prefixesIPv6Only(p.prefixes)
+	}
+
+	if len(prefixes) == 0 {
 		output += "false;\n"
 	} else {
 
@@ -75,7 +93,7 @@ func (p PrefixSet) Marshal() string {
 
 		// add all prefixes on single lines
 		suffix := ","
-		for i, pref := range p.prefixes {
+		for i, pref := range prefixes {
 			// if this is the last entry, we don't need a trailing comma
 			if i == len(p.prefixes)-1 {
 				suffix = ""
@@ -91,4 +109,24 @@ func (p PrefixSet) Marshal() string {
 	output += "}\n"
 
 	return output
+}
+
+func prefixesIPv4Only(f []net.IPNet) []net.IPNet {
+	r := make([]net.IPNet, 0)
+	for _, p := range f {
+		if p.IP.To4().Equal(p.IP) {
+			r = append(r, p)
+		}
+	}
+	return r
+}
+
+func prefixesIPv6Only(f []net.IPNet) []net.IPNet {
+	r := make([]net.IPNet, 0)
+	for _, p := range f {
+		if len(p.IP) == net.IPv6len {
+			r = append(r, p)
+		}
+	}
+	return r
 }

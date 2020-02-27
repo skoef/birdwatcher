@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 )
 
@@ -13,7 +12,7 @@ var (
 	errConfigIdentical = errors.New("configuration file is identical")
 )
 
-func updateBirdConfig(filename, functionName string, prefixes []net.IPNet) error {
+func updateBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixCollection) error {
 	// write config to temp file
 	tmpFilename := fmt.Sprintf("%s.tmp", filename)
 	// make sure we don't keep tmp file around when something goes wrong
@@ -23,7 +22,7 @@ func updateBirdConfig(filename, functionName string, prefixes []net.IPNet) error
 		}
 	}(tmpFilename)
 
-	if err := writeBirdConfig(tmpFilename, functionName, prefixes); err != nil {
+	if err := writeBirdConfig(tmpFilename, protocol, prefixes); err != nil {
 		return err
 	}
 
@@ -36,7 +35,7 @@ func updateBirdConfig(filename, functionName string, prefixes []net.IPNet) error
 	return os.Rename(tmpFilename, filename)
 }
 
-func writeBirdConfig(filename, functionName string, prefixes []net.IPNet) error {
+func writeBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixCollection) error {
 	var err error
 
 	// open file
@@ -48,31 +47,10 @@ func writeBirdConfig(filename, functionName string, prefixes []net.IPNet) error 
 	// prepare content with a header
 	output := "# DO NOT EDIT MANUALLY\n"
 
-	// set function name
-	output += fmt.Sprintf("function %s()\n{\n\treturn ", functionName)
-
-	if len(prefixes) == 0 {
-		output += "false;\n"
-	} else {
-
-		// begin array
-		output += "net ~ [\n"
-
-		// add all prefixes on single lines
-		suffix := ","
-		for i, p := range prefixes {
-			if i == len(prefixes)-1 {
-				suffix = ""
-			}
-			output += fmt.Sprintf("\t\t%s%s\n", p.String(), suffix)
-		}
-
-		// end array
-		output += "\t];\n"
+	// append marshalled prefixsets
+	for _, p := range prefixes {
+		output += p.Marshal(protocol)
 	}
-
-	// add footer
-	output += "}\n"
 
 	// write data to file
 	_, err = f.WriteString(output)
