@@ -1,7 +1,6 @@
 package birdwatcher
 
 import (
-	"bytes"
 	"context"
 	"net"
 	"os/exec"
@@ -16,7 +15,7 @@ import (
 type HealthCheck struct {
 	stopped  chan interface{}
 	actions  chan *Action
-	prefixes []net.IPNet
+	prefixes PrefixCollection
 	Config   Config
 	reloads  map[string]bool
 }
@@ -66,17 +65,17 @@ func (h *HealthCheck) Start(services []*ServiceCheck) {
 	}
 }
 
-func (h *HealthCheck) didReloadBefore(protocol string) bool {
-	reloaded, found := h.reloads[protocol]
+func (h *HealthCheck) didReloadBefore(protocol PrefixFamily) bool {
+	reloaded, found := h.reloads[string(protocol)]
 	return (reloaded && found)
 }
 
 func (h *HealthCheck) handleAction(action *Action) {
 	for _, p := range action.Prefixes {
 		if action.State == ServiceStateUp {
-			h.addPrefix(p)
+			h.addPrefix(action.Service.FunctionName, p)
 		} else if action.State == ServiceStateDown {
-			h.removePrefix(p)
+			h.removePrefix(action.Service.FunctionName, p)
 		} else {
 			log.WithFields(log.Fields{
 				"state":   action.State,
@@ -87,34 +86,18 @@ func (h *HealthCheck) handleAction(action *Action) {
 	}
 
 	if h.Config.IPv4.Enable {
-		h.applyConfig("ipv4", h.Config.IPv4, func(f []net.IPNet) []net.IPNet {
-			r := make([]net.IPNet, 0)
-			for _, p := range f {
-				if p.IP.To4().Equal(p.IP) {
-					r = append(r, p)
-				}
-			}
-			return r
-		}(h.prefixes))
+		h.applyConfig(PrefixFamilyIPv4, h.Config.IPv4, h.prefixes)
 	}
 
 	if h.Config.IPv6.Enable {
-		h.applyConfig("ipv6", h.Config.IPv6, func(f []net.IPNet) []net.IPNet {
-			r := make([]net.IPNet, 0)
-			for _, p := range f {
-				if len(p.IP) == net.IPv6len {
-					r = append(r, p)
-				}
-			}
-			return r
-		}(h.prefixes))
+		h.applyConfig(PrefixFamilyIPv6, h.Config.IPv6, h.prefixes)
 	}
 }
 
-func (h *HealthCheck) applyConfig(protocol string, config protoConfig, prefixes []net.IPNet) error {
+func (h *HealthCheck) applyConfig(protocol PrefixFamily, config protoConfig, prefixes PrefixCollection) error {
 	var err error
 	// update bird config
-	err = updateBirdConfig(config.ConfigFile, config.FunctionName, prefixes)
+	err = updateBirdConfig(config.ConfigFile, protocol, prefixes)
 	if err != nil {
 		// if config did not change, we should still reload if we don't know the
 		// state of BIRD
@@ -187,51 +170,34 @@ func (h *HealthCheck) applyConfig(protocol string, config protoConfig, prefixes 
 		}).Debug("reloading succeeded")
 
 		// mark succesful reload
-		h.reloads[protocol] = true
+		h.reloads[string(protocol)] = true
 	}
 
 	return err
 }
 
-func (h *HealthCheck) addPrefix(prefix net.IPNet) {
-	log.WithFields(log.Fields{
-		"prefix": prefix,
-	}).Debug("adding prefix to global list")
+func (h *HealthCheck) addPrefix(functionName string, prefix net.IPNet) {
+	h.ensurePrefixSet(functionName)
 
-	// skip prefix if it's already in the list
-	// shouldn't really happen though
-	for _, p := range h.prefixes {
-		if p.IP.Equal(prefix.IP) && bytes.Equal(p.Mask, prefix.Mask) {
-			log.WithFields(log.Fields{
-				"prefix": prefix,
-			}).Warn("duplicate prefix, skipping")
-			return
-		}
-	}
-
-	// add prefix to the global prefix list
-	h.prefixes = append(h.prefixes, prefix)
+	h.prefixes[functionName].Add(prefix)
 }
 
-func (h *HealthCheck) removePrefix(prefix net.IPNet) {
-	log.WithFields(log.Fields{
-		"prefix": prefix,
-	}).Debug("removing prefix from global list")
+func (h *HealthCheck) removePrefix(functionName string, prefix net.IPNet) {
+	h.ensurePrefixSet(functionName)
 
-	// go over global prefix list and remove it when found
-	for i, p := range h.prefixes {
-		if p.IP.Equal(prefix.IP) && bytes.Equal(p.Mask, prefix.Mask) {
-			// remove entry from slice, fast approach
-			h.prefixes[i] = h.prefixes[len(h.prefixes)-1] // copy last element to index i
-			//h.prefixes[len(h.prefixes)-1] = nil // erase last element
-			h.prefixes = h.prefixes[:len(h.prefixes)-1] // truncate slice
-			return
-		}
+	h.prefixes[functionName].Remove(prefix)
+}
+
+func (h *HealthCheck) ensurePrefixSet(functionName string) {
+	// make sure the top level map is prepared
+	if h.prefixes == nil {
+		h.prefixes = make(PrefixCollection)
 	}
 
-	log.WithFields(log.Fields{
-		"prefix": prefix,
-	}).Warn("prefix not found in list, skipping")
+	// make sure a mapping for this function name exists
+	if _, found := h.prefixes[functionName]; !found {
+		h.prefixes[functionName] = NewPrefixSet(functionName)
+	}
 }
 
 // Stop signals all servic checks to stop as well and then stops itself

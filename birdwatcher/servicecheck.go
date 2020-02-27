@@ -24,6 +24,7 @@ const (
 // specific service health check
 type ServiceCheck struct {
 	name               string
+	FunctionName       string
 	Command            string
 	Interval           int
 	Timeout            int

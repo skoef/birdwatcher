@@ -51,7 +51,6 @@ Configuration section specific to manage the IPv4 BIRD daemon, `bird`.
 |key          |description|
 |-------------|-----------|
 |enable       |Whether or not to manage IPv4 daemon of BIRD. Note that at least on of both ipv4 or ipv6 should be enabled for birdwatcher to start. Defaults to **false**.|
-|functionname |Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.|
 |configfile   |Path to configuration file that will be generated and should be included in the BIRD configuration. Defaults to **/etc/bird/birdwatcher.conf**.|
 |reloadcommand|Command to invoke to signal BIRD the configuration should be reloaded. Defaults to **/usr/sbin/birdc configure**.|
 
@@ -63,7 +62,6 @@ Configuration section specific to manage the IPv6 BIRD daemon, `bird6`.
 |key          |description|
 |-------------|-----------|
 |enable       |Whether or not to manage IPv6 daemon of BIRD. Note that at least on of both ipv4 or ipv6 should be enabled for birdwatcher to start. Defaults to **false**.|
-|functionname |Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.|
 |configfile   |Path to configuration file that will be generated and should be included in the BIRD configuration. Defaults to **/etc/bird/birdwatcher6.conf**.|
 |reloadcommand|Command to invoke to signal BIRD the configuration should be reloaded. Defaults to **/usr/sbin/birdc6 configure**.|
 
@@ -75,6 +73,7 @@ Each service under this section can have the following settings:
 |key          |description|
 |-------------|-----------|
 |command      |Command that will be periodically run to check if the service should be considered up or down. The result is based on the exit code: a non-zero exit codes makes birdwatcher decide the service is down, otherwise it's up. **Required**|
+|functionname |Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.|
 |interval     |The interval in seconds at which birdwatcher will check the service. Defaults to **1**|
 |timeout      |Time in seconds in which the check command should complete. Afterwards it will be handled as if the check command failed|
 |fail         |The amount of times the check command should fail before the service is considered to be down. Defaults to **1**|

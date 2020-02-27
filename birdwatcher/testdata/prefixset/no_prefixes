@@ -1,0 +1,4 @@
+function foobar()
+{
+	return false;
+}
