@@ -26,21 +26,40 @@ enable = true
   
 ```
 
-Sample output in `/etc/bird/birdwatcher.conf` would be:
+Sample output in `/etc/bird/birdwatcher.conf` if `haproxy_check.sh` checks out would be:
 
 ```
 # DO NOT EDIT MANUALLY
 function match_route()
 {
 	return net ~ [
-		1.2.3.4/32,
-		2.3.4.5/26,
-		3.4.5.6/24,
-		4.5.6.7/21
+		192.168.0.0/24,
+		192.168.1.0/24
 	];
 }
 ```
 
+As soon as birdwatcher finds out haproxy is down, it will change the content in `/etc/bird/birdwatcher.conf` to:
+
+```
+# DO NOT EDIT MANUALLY
+function match_route()
+{
+	return false;
+}
+```
+and reconfigures BIRD by given `reloadcommand`. Obviously, if you have multiple services being checked by birdwatcher, only the prefixes of that particular service would be removed from the list in `match_route`.
+
+Integration in BIRD is a matter of including `/etc/bird/birdwatcher.conf` and `birdwatcher6.conf` (or whatever you configured at `configfile`) in the configuration for bird and bird6 respectively and use it in a protocol like this:
+
+```
+protocol bgp my_bgp_proto {
+  local as 12345;
+  neighbor 1.2.3.4 as 23435;
+  ...
+  export where match_route();
+}
+```
 
 ## Configuration
 
