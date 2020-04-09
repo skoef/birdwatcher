@@ -11,10 +11,9 @@ import (
 
 // Config -- struct for holding definitions from configuration file
 type Config struct {
-	IPv4         protoConfig
-	IPv6         protoConfig
-	FunctionName string
-	Services     map[string]*ServiceCheck
+	IPv4     protoConfig
+	IPv6     protoConfig
+	Services map[string]*ServiceCheck
 }
 
 type protoConfig struct {

@@ -7,8 +7,9 @@ After=bird6.service
 [Service]
 Type=simple
 Environment=CONFIG_FILE=/etc/birdwatcher.conf
-ExecStartPre=/usr/bin/birdwatcher -config ${CONFIG_FILE} -check-config
-ExecStart=/usr/bin/birdwatcher -config ${CONFIG_FILE}
+EnvironmentFile=-/etc/default/birdwatcher
+ExecStartPre=/usr/bin/birdwatcher -config $CONFIG_FILE -check-config
+ExecStart=/usr/bin/birdwatcher -config $CONFIG_FILE
 Restart=on-failure
 
 [Install]

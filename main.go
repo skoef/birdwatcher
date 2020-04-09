@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -57,6 +58,10 @@ func main() {
 
 	if *checkConfig {
 		fmt.Printf("Configuration file %s OK\n", *configFile)
+		if *debug {
+			configJSON, _ := json.MarshalIndent(config, "", "  ")
+			fmt.Println(string(configJSON))
+		}
 		os.Exit(0)
 	}
 
