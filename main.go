@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
@@ -15,6 +17,10 @@ import (
 
 var (
 	config birdwatcher.Config
+
+	// set during building
+	buildVersion = "HEAD"
+	buildBranch  = "master"
 )
 
 func init() {
@@ -29,10 +35,26 @@ func main() {
 	configFile := fs.String("config", "", "config file (defaults to /etc/birdwatcher.conf)")
 	checkConfig := fs.Bool("check-config", false, "check config file and exit")
 	debug := fs.Bool("debug", false, "increase loglevel to debug")
+	version := fs.Bool("version", false, "show version and exit")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		os.Exit(1)
 	}
+
+	var versionString string
+	// release or custom build
+	if regexp.MustCompile("^v[0-9\\.]+$").MatchString(buildVersion) {
+		versionString = fmt.Sprintf("version %s", strings.Replace(buildVersion, "v", "", 1))
+	} else {
+		versionString = fmt.Sprintf("build %s (%s branch)", buildVersion, buildBranch)
+	}
+
+	if *version {
+		fmt.Printf("birdwatcher, %s\n", versionString)
+		os.Exit(0)
+	}
+
+	log.Infof("starting birdwatcher, %s", versionString)
 
 	if *debug {
 		log.SetLevel(log.DebugLevel)
