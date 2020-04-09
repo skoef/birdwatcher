@@ -75,7 +75,7 @@ Each service under this section can have the following settings:
 |command      |Command that will be periodically run to check if the service should be considered up or down. The result is based on the exit code: a non-zero exit codes makes birdwatcher decide the service is down, otherwise it's up. **Required**|
 |functionname |Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.|
 |interval     |The interval in seconds at which birdwatcher will check the service. Defaults to **1**|
-|timeout      |Time in seconds in which the check command should complete. Afterwards it will be handled as if the check command failed|
+|timeout      |Time in seconds in which the check command should complete. Afterwards it will be handled as if the check command failed. Defaults to **10**|
 |fail         |The amount of times the check command should fail before the service is considered to be down. Defaults to **1**|
 |rise         |The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**|
 |prefixes     |Array of prefixes, mixed IPv4 and IPv6. At least 1 prefix is **required** per service|
