@@ -19,7 +19,6 @@ linters:
     - exhaustive
     - exportloopref
     - forcetypeassert
-    - gochecknoglobals
     - gochecknoinits
     - gocognit
     - goconst

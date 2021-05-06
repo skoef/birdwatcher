@@ -2,11 +2,19 @@ package birdwatcher
 
 import (
 	"bytes"
-	"fmt"
 	"net"
+	"text/template"
 
 	log "github.com/sirupsen/logrus"
+	// use embed for embedding the function template
+	_ "embed"
 )
+
+//go:embed templates/function.tpl
+var functionTemplate string
+var tplFuncs = template.FuncMap{
+	"prefpad": prefixPad,
+}
 
 // PrefixCollection represents prefixsets per function name
 type PrefixCollection map[string]*PrefixSet
@@ -77,41 +85,30 @@ func (p *PrefixSet) Remove(prefix net.IPNet) {
 
 // Marshal returns the BIRD function for this prefixset
 func (p PrefixSet) Marshal(family PrefixFamily) string {
-	// begin of function
-	output := fmt.Sprintf("function %s()\n{\n\treturn ", p.functionName)
+	// init template
+	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionTemplate))
 
-	var prefixes []net.IPNet
+	// init template body
+	var tplBody struct {
+		FunctionName string
+		Prefixes     []net.IPNet
+	}
+	tplBody.FunctionName = p.functionName
+
 	switch family {
 	case PrefixFamilyIPv4:
-		prefixes = prefixesIPv4Only(p.prefixes)
+		tplBody.Prefixes = prefixesIPv4Only(p.prefixes)
 	case PrefixFamilyIPv6:
-		prefixes = prefixesIPv6Only(p.prefixes)
+		tplBody.Prefixes = prefixesIPv6Only(p.prefixes)
 	}
 
-	if len(prefixes) == 0 {
-		output += "false;\n"
-	} else {
-		// begin array
-		output += "net ~ [\n"
-
-		// add all prefixes on single lines
-		suffix := ","
-		for i, pref := range prefixes {
-			// if this is the last entry, we don't need a trailing comma
-			if i == len(prefixes)-1 {
-				suffix = ""
-			}
-			output += fmt.Sprintf("\t\t%s%s\n", pref.String(), suffix)
-		}
-
-		// end array
-		output += "\t];\n"
+	// execute template and return output
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, tplBody); err != nil {
+		log.WithError(err).Error("could not parse template body")
 	}
 
-	// add footer
-	output += "}\n"
-
-	return output
+	return buf.String()
 }
 
 func prefixesIPv4Only(f []net.IPNet) []net.IPNet {
@@ -134,4 +131,19 @@ func prefixesIPv6Only(f []net.IPNet) []net.IPNet {
 	}
 
 	return r
+}
+
+// prefixPad is a helper function for the template
+// basically returns CIDR notations per IPNet, each suffixed with a , except for
+// the last entry
+func prefixPad(x []net.IPNet) []string {
+	pp := make([]string, len(x))
+	for i, p := range x {
+		pp[i] = p.String()
+		if i < len(x)-1 {
+			pp[i] += ","
+		}
+	}
+
+	return pp
 }
