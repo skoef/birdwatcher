@@ -3,6 +3,7 @@ package birdwatcher
 import (
 	"net"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -124,4 +125,15 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	require.NoError(t, err)
 	// should represent function matching above prefixes
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
+}
+
+func TestPrefixSet_prefixPad(t *testing.T) {
+	prefixes := []net.IPNet{
+		{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}},
+		{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}},
+		{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}},
+		{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}},
+	}
+	padded := prefixPad(prefixes)
+	assert.Equal(t, "1.2.3.0/24,2.3.4.0/24,3.4.5.0/24,3.4.5.0/26", strings.Join(padded, ""))
 }
