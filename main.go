@@ -16,13 +16,12 @@ import (
 )
 
 var (
-	config birdwatcher.Config
-
 	// set during building
-	buildVersion = "HEAD"
-	buildBranch  = "master"
+	buildVersion = "HEAD"   //nolint:gochecknoglobals
+	buildBranch  = "master" //nolint:gochecknoglobals
 )
 
+//nolint:gochecknoinits
 func init() {
 	// initialize logging
 	log.SetOutput(os.Stdout)
@@ -30,24 +29,21 @@ func init() {
 }
 
 func main() {
-
-	fs := flag.NewFlagSet("birdwatcher", flag.ContinueOnError)
-	configFile := fs.String("config", "", "config file (defaults to /etc/birdwatcher.conf)")
-	checkConfig := fs.Bool("check-config", false, "check config file and exit")
-	debug := fs.Bool("debug", false, "increase loglevel to debug")
-	version := fs.Bool("version", false, "show version and exit")
-
-	if err := fs.Parse(os.Args[1:]); err != nil {
-		os.Exit(1)
-	}
-
 	var versionString string
 	// release or custom build
-	if regexp.MustCompile("^v[0-9\\.]+$").MatchString(buildVersion) {
+	if regexp.MustCompile(`^v[0-9\.]+$`).MatchString(buildVersion) {
 		versionString = fmt.Sprintf("version %s", strings.Replace(buildVersion, "v", "", 1))
 	} else {
 		versionString = fmt.Sprintf("build %s (%s branch)", buildVersion, buildBranch)
 	}
+
+	var (
+		configFile  = flag.String("config", "/etc/birdwatcher.conf", "path to config file")
+		checkConfig = flag.Bool("check-config", false, "check config file and exit")
+		debug       = flag.Bool("debug", false, "increase loglevel to debug")
+		version     = flag.Bool("version", false, "show version and exit")
+	)
+	flag.Parse()
 
 	if *version {
 		fmt.Printf("birdwatcher, %s\n", versionString)
@@ -60,14 +56,11 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if *configFile == "" {
-		*configFile = "/etc/birdwatcher.conf"
-	}
-
 	log.WithFields(log.Fields{
 		"configFile": *configFile,
 	}).Debug("Opening configuration file")
 
+	var config birdwatcher.Config
 	if err := birdwatcher.ReadConfig(&config, *configFile); err != nil {
 		// return slightly different message when birdwatcher was invoked with -check-config
 		if *checkConfig {
@@ -96,11 +89,9 @@ func main() {
 	signal.Notify(signalCh, os.Interrupt)
 	signal.Notify(signalCh, syscall.SIGTERM, syscall.SIGQUIT)
 
-	select {
-	case sig := <-signalCh:
-		log.WithFields(log.Fields{
-			"signal": sig,
-		}).Info("Signal received, stopping")
-		hc.Stop(config.GetServices())
-	}
+	sig := <-signalCh
+	log.WithFields(log.Fields{
+		"signal": sig,
+	}).Info("Signal received, stopping")
+	hc.Stop(config.GetServices())
 }

@@ -69,3 +69,36 @@ func TestHealthCheckDidReloadBefore(t *testing.T) {
 	assert.Equal(t, false, hc.didReloadBefore("ipv4"))
 	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
 }
+
+func TestHealthCheck_handleAction(t *testing.T) {
+	// empty healthcheck
+	hc := HealthCheck{}
+	assert.Nil(t, hc.prefixes)
+
+	// create action with state up and 2 prefixes
+	action := &Action{
+		State:    ServiceStateUp,
+		Prefixes: make([]net.IPNet, 2),
+	}
+	var prefix *net.IPNet
+	_, prefix, _ = net.ParseCIDR("1.2.3.0/24")
+	action.Prefixes[0] = *prefix
+	_, prefix, _ = net.ParseCIDR("2.3.4.0/24")
+	action.Prefixes[1] = *prefix
+	action.Service = &ServiceCheck{
+		FunctionName: "test",
+	}
+	// handle service state up
+	hc.handleAction(action)
+	if assert.Contains(t, hc.prefixes, "test") {
+		assert.Equal(t, 2, len(hc.prefixes["test"].prefixes))
+	}
+
+	// action switches to down for one of the prefixes
+	action.State = ServiceStateDown
+	action.Prefixes = action.Prefixes[1:]
+	hc.handleAction(action)
+	if assert.Contains(t, hc.prefixes, "test") {
+		assert.Equal(t, 1, len(hc.prefixes["test"].prefixes))
+	}
+}

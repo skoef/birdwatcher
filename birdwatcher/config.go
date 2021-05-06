@@ -126,9 +126,11 @@ func (c Config) validateService(s *ServiceCheck) error {
 
 // GetServices converts the services map into a slice of ServiceChecks and returns it
 func (c Config) GetServices() []*ServiceCheck {
-	var sc []*ServiceCheck
+	sc := make([]*ServiceCheck, len(c.Services))
+	j := 0
 	for i := range c.Services {
-		sc = append(sc, c.Services[i])
+		sc[j] = c.Services[i]
+		j++
 	}
 
 	return sc

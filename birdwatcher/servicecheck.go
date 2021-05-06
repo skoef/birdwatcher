@@ -2,6 +2,7 @@ package birdwatcher
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os/exec"
 	"strings"
@@ -47,19 +48,21 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 	upCounter := 0
 	downCounter := 0
 
-	for {
+	sLog := log.WithFields(log.Fields{
+		"service": s.name,
+		"command": s.Command,
+	})
 
+	for {
 		select {
 		case <-s.stopped:
-			log.WithFields(log.Fields{
-				"service": s.name,
-			}).Debug("received stop signal")
+			sLog.Debug("received stop signal")
 			// we're done
 			return
 
 		case <-ticker.C:
 			// perform check synchronously to prevent checks to queue
-			err = s.performCheck(action)
+			err = s.performCheck()
 
 			// based on the check result, decide if we're going up or down
 			//
@@ -68,17 +71,12 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 				// reset downCounter
 				downCounter = 0
 
-				log.WithFields(log.Fields{
-					"service": s.name,
-					"command": s.Command,
-				}).Debug("check command exited without error")
+				sLog.Debug("check command exited without error")
 
 				// are we up enough to consider service to be healthy
 				if upCounter >= (s.Rise - 1) {
 					if s.state != ServiceStateUp {
-						log.WithFields(log.Fields{
-							"service":   s.name,
-							"command":   s.Command,
+						sLog.WithFields(log.Fields{
 							"successes": upCounter,
 						}).Info("service transitioning to up")
 
@@ -91,9 +89,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 				} else {
 					upCounter++
 
-					log.WithFields(log.Fields{
-						"service":   s.name,
-						"command":   s.Command,
+					sLog.WithFields(log.Fields{
 						"successes": upCounter,
 					}).Debug("service moving towards up")
 				}
@@ -103,17 +99,12 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 				// reset upcounter
 				upCounter = 0
 
-				log.WithFields(log.Fields{
-					"service": s.name,
-					"command": s.Command,
-				}).Debug("check command failed or timed out")
+				sLog.Debug("check command failed or timed out")
 
 				// are we down long enough to consider service down
 				if downCounter >= (s.Fail - 1) {
 					if s.state != ServiceStateDown {
-						log.WithFields(log.Fields{
-							"service":  s.name,
-							"command":  s.Command,
+						sLog.WithFields(log.Fields{
 							"failures": downCounter,
 						}).Info("service transitioning to down")
 
@@ -125,9 +116,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 				} else {
 					downCounter++
 
-					log.WithFields(log.Fields{
-						"service":  s.name,
-						"command":  s.Command,
+					sLog.WithFields(log.Fields{
 						"failures": downCounter,
 					}).Debug("service moving towards down")
 				}
@@ -153,11 +142,12 @@ func (s *ServiceCheck) getAction() *Action {
 	}
 }
 
-func (s *ServiceCheck) performCheck(action *chan *Action) error {
-	log.WithFields(log.Fields{
+func (s *ServiceCheck) performCheck() error {
+	sLog := log.WithFields(log.Fields{
 		"service": s.name,
 		"command": s.Command,
-	}).Debug("performing check")
+	})
+	sLog.Debug("performing check")
 
 	if s.Timeout <= 0 {
 		s.Timeout = 1
@@ -180,17 +170,12 @@ func (s *ServiceCheck) performCheck(action *chan *Action) error {
 	// We want to check the context error to see if the timeout was executed.
 	// The error returned by cmd.Output() will be OS specific based on what
 	// happens when a process is killed.
-	if ctx.Err() == context.DeadlineExceeded {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return ctx.Err()
 	}
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"service": s.name,
-			"command": s.Command,
-			"error":   err.Error(),
-			"output":  output,
-		}).Debug("check output")
+		sLog.WithError(err).WithField("output", output).Debug("check output")
 	}
 
 	return err
