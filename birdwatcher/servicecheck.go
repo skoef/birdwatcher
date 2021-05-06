@@ -134,6 +134,16 @@ func (s *ServiceCheck) Stop() {
 	}).Debug("stopped service")
 }
 
+// Name returns the service check's name
+func (s *ServiceCheck) Name() string {
+	return s.name
+}
+
+// IsUp returns whether the service is considered up by birdwatcher
+func (s *ServiceCheck) IsUp() bool {
+	return (s.state == ServiceStateUp)
+}
+
 func (s *ServiceCheck) getAction() *Action {
 	return &Action{
 		Service:  s,

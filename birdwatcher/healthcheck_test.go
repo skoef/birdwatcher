@@ -89,7 +89,7 @@ func TestHealthCheck_handleAction(t *testing.T) {
 		FunctionName: "test",
 	}
 	// handle service state up
-	hc.handleAction(action)
+	hc.handleAction(action, nil)
 	if assert.Contains(t, hc.prefixes, "test") {
 		assert.Equal(t, 2, len(hc.prefixes["test"].prefixes))
 	}
@@ -97,8 +97,21 @@ func TestHealthCheck_handleAction(t *testing.T) {
 	// action switches to down for one of the prefixes
 	action.State = ServiceStateDown
 	action.Prefixes = action.Prefixes[1:]
-	hc.handleAction(action)
+	hc.handleAction(action, nil)
 	if assert.Contains(t, hc.prefixes, "test") {
 		assert.Equal(t, 1, len(hc.prefixes["test"].prefixes))
 	}
+}
+
+func TestHealthCheck_statusUpdate(t *testing.T) {
+	// healthcheck with 2 empty services
+	hc := HealthCheck{services: []*ServiceCheck{
+		{name: "foo"}, {name: "bar"},
+	}}
+
+	assert.Equal(t, "all 2 service(s) down", hc.statusUpdate())
+	hc.services[0].state = ServiceStateUp
+	assert.Equal(t, "service(s) bar down, 1 service(s) up", hc.statusUpdate())
+	hc.services[1].state = ServiceStateUp
+	assert.Equal(t, "all 2 service(s) up", hc.statusUpdate())
 }
