@@ -3,6 +3,7 @@ package birdwatcher
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os/exec"
 	"strings"
@@ -23,6 +24,7 @@ const (
 type HealthCheck struct {
 	stopped  chan interface{}
 	actions  chan *Action
+	services []*ServiceCheck
 	prefixes PrefixCollection
 	Config   Config
 	reloads  map[string]bool
@@ -39,7 +41,9 @@ func NewHealthCheck(c Config) HealthCheck {
 
 // Start starts the process of health checking the services and handling
 // Actions that come from them
-func (h *HealthCheck) Start(services []*ServiceCheck) {
+func (h *HealthCheck) Start(services []*ServiceCheck, ready chan bool, status *chan string) {
+	// copy reference to services
+	h.services = services
 	// create channel for service check to push there events on
 	h.actions = make(chan *Action, actionsChannelSize)
 	// create a channel to signal we're stopping
@@ -49,11 +53,13 @@ func (h *HealthCheck) Start(services []*ServiceCheck) {
 	// we'll need this later to stop them
 	for _, s := range services {
 		log.WithFields(log.Fields{
-			"service": s.name,
-		}).Info("Starting service check")
+			"service": s.Name(),
+		}).Info("starting service check")
 
 		go s.Start(&h.actions)
 	}
+
+	ready <- true
 
 	// mean while process incoming actions from the channel
 	for {
@@ -66,9 +72,9 @@ func (h *HealthCheck) Start(services []*ServiceCheck) {
 			log.WithFields(log.Fields{
 				"service": action.Service.name,
 				"state":   action.State,
-			}).Debug("Incoming action")
+			}).Debug("incoming action")
 
-			h.handleAction(action)
+			h.handleAction(action, status)
 		}
 	}
 }
@@ -79,7 +85,7 @@ func (h *HealthCheck) didReloadBefore(protocol PrefixFamily) bool {
 	return (reloaded && found)
 }
 
-func (h *HealthCheck) handleAction(action *Action) {
+func (h *HealthCheck) handleAction(action *Action, status *chan string) {
 	for _, p := range action.Prefixes {
 		switch action.State {
 		case ServiceStateUp:
@@ -96,6 +102,14 @@ func (h *HealthCheck) handleAction(action *Action) {
 		}
 	}
 
+	// gather data for a status update
+	su := h.statusUpdate()
+	log.WithField("status", su).Debug("status update")
+	// if status channel is given, send update on it
+	if status != nil {
+		*status <- su
+	}
+
 	if h.Config.IPv4.Enable {
 		if err := h.applyConfig(PrefixFamilyIPv4, h.Config.IPv4, h.prefixes); err != nil {
 			log.WithError(err).Error("could not apply bird config")
@@ -107,6 +121,34 @@ func (h *HealthCheck) handleAction(action *Action) {
 			log.WithError(err).Error("could not apply bird6 config")
 		}
 	}
+}
+
+// statusUpdate returns a string with a situational report on how many services
+// are configured up
+func (h *HealthCheck) statusUpdate() string {
+	servicesDown := []string{}
+	for _, s := range h.services {
+		if s.IsUp() {
+			continue
+		}
+
+		servicesDown = append(servicesDown, s.Name())
+	}
+
+	allServices := len(h.services)
+
+	var status string
+	switch {
+	case len(servicesDown) == 0:
+		status = fmt.Sprintf("all %d service(s) up", allServices)
+	case len(servicesDown) == allServices:
+		status = fmt.Sprintf("all %d service(s) down", allServices)
+	default:
+		status = fmt.Sprintf("service(s) %s down, %d service(s) up",
+			strings.Join(servicesDown, ","), allServices-len(servicesDown))
+	}
+
+	return status
 }
 
 func (h *HealthCheck) applyConfig(protocol PrefixFamily, config protoConfig, prefixes PrefixCollection) error {
@@ -201,12 +243,12 @@ func (h *HealthCheck) ensurePrefixSet(functionName string) {
 }
 
 // Stop signals all servic checks to stop as well and then stops itself
-func (h *HealthCheck) Stop(services []*ServiceCheck) {
+func (h *HealthCheck) Stop() {
 	// signal each service to stop
-	for _, s := range services {
+	for _, s := range h.services {
 		log.WithFields(log.Fields{
-			"service": s.name,
-		}).Info("Stopping service check")
+			"service": s.Name(),
+		}).Info("stopping service check")
 
 		s.Stop()
 	}
