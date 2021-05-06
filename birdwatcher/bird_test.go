@@ -1,7 +1,6 @@
 package birdwatcher
 
 import (
-	"io/ioutil"
 	"net"
 	"os"
 	"testing"
@@ -11,9 +10,8 @@ import (
 )
 
 func TestWriteBirdConfig(t *testing.T) {
-
 	// open tempfile
-	tmpFile, err := ioutil.TempFile("", "bird_test")
+	tmpFile, err := os.CreateTemp("", "bird_test")
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -25,10 +23,10 @@ func TestWriteBirdConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// read data from temp file and compare it to file fixture
-	data, err := ioutil.ReadFile(tmpFile.Name())
+	data, err := os.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
 
-	fixture, err := ioutil.ReadFile("testdata/bird/config_empty")
+	fixture, err := os.ReadFile("testdata/bird/config_empty")
 	require.NoError(t, err)
 
 	assert.Equal(t, fixture, data)
@@ -43,10 +41,10 @@ func TestWriteBirdConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// read data from temp file and compare it to file fixture
-	data, err = ioutil.ReadFile(tmpFile.Name())
+	data, err = os.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
 
-	fixture, err = ioutil.ReadFile("testdata/bird/config")
+	fixture, err = os.ReadFile("testdata/bird/config")
 	require.NoError(t, err)
 
 	assert.Equal(t, fixture, data)
@@ -54,11 +52,11 @@ func TestWriteBirdConfig(t *testing.T) {
 
 func TestBirdCompareFiles(t *testing.T) {
 	// open 2 tempfiles
-	tmpFileA, err := ioutil.TempFile("", "bird_test")
+	tmpFileA, err := os.CreateTemp("", "bird_test")
 	require.NoError(t, err)
 	defer os.Remove(tmpFileA.Name())
 
-	tmpFileB, err := ioutil.TempFile("", "bird_test")
+	tmpFileB, err := os.CreateTemp("", "bird_test")
 	require.NoError(t, err)
 	defer os.Remove(tmpFileB.Name())
 

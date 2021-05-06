@@ -1,11 +1,12 @@
 package birdwatcher
 
 import (
+	"net"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
-	"net"
-	"testing"
 )
 
 func TestPrefixSet_Add(t *testing.T) {
@@ -83,7 +84,7 @@ func TestPrefixSet_Remove(t *testing.T) {
 func TestPrefixSet_Marshal(t *testing.T) {
 	p := NewPrefixSet("foobar")
 
-	fixture, err := ioutil.ReadFile("testdata/prefixset/no_prefixes")
+	fixture, err := os.ReadFile("testdata/prefixset/no_prefixes")
 	require.NoError(t, err)
 	// should represent empty function returning false
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
@@ -98,7 +99,7 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))
 
 	// IPv4 should represent function matching above prefixes
-	fixture, err = ioutil.ReadFile("testdata/prefixset/some_prefixes")
+	fixture, err = os.ReadFile("testdata/prefixset/some_prefixes")
 	require.NoError(t, err)
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
 
@@ -112,14 +113,14 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
 
 	// IPv6 should represent the two prefixes
-	fixture, err = ioutil.ReadFile("testdata/prefixset/some_prefixes_v6")
+	fixture, err = os.ReadFile("testdata/prefixset/some_prefixes_v6")
 	require.NoError(t, err)
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))
 
 	// if we change the function name, it should reflect in the output
 	p.functionName = "something_else"
 
-	fixture, err = ioutil.ReadFile("testdata/prefixset/function_name")
+	fixture, err = os.ReadFile("testdata/prefixset/function_name")
 	require.NoError(t, err)
 	// should represent function matching above prefixes
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))

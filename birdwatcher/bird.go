@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 )
 
@@ -54,16 +53,17 @@ func writeBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixColl
 
 	// write data to file
 	_, err = f.WriteString(output)
+
 	return err
 }
 
 func compareFiles(fileA, fileB string) bool {
-	data, err := ioutil.ReadFile(fileA)
+	data, err := os.ReadFile(fileA)
 	if err != nil {
 		return false
 	}
 
-	datb, err := ioutil.ReadFile(fileB)
+	datb, err := os.ReadFile(fileB)
 	if err != nil {
 		return false
 	}

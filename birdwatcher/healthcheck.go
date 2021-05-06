@@ -2,12 +2,20 @@ package birdwatcher
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os/exec"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	// size of the channels service checks push their events on
+	actionsChannelSize = 16
+	// timeout when reloading bird
+	reloadTimeout = 10 * time.Second
 )
 
 // HealthCheck -- struct holding everything needed for the never-ending health
@@ -33,7 +41,7 @@ func NewHealthCheck(c Config) HealthCheck {
 // Actions that come from them
 func (h *HealthCheck) Start(services []*ServiceCheck) {
 	// create channel for service check to push there events on
-	h.actions = make(chan *Action, 16)
+	h.actions = make(chan *Action, actionsChannelSize)
 	// create a channel to signal we're stopping
 	h.stopped = make(chan interface{})
 
@@ -67,70 +75,71 @@ func (h *HealthCheck) Start(services []*ServiceCheck) {
 
 func (h *HealthCheck) didReloadBefore(protocol PrefixFamily) bool {
 	reloaded, found := h.reloads[string(protocol)]
+
 	return (reloaded && found)
 }
 
 func (h *HealthCheck) handleAction(action *Action) {
 	for _, p := range action.Prefixes {
-		if action.State == ServiceStateUp {
+		switch action.State {
+		case ServiceStateUp:
 			h.addPrefix(action.Service.FunctionName, p)
-		} else if action.State == ServiceStateDown {
+		case ServiceStateDown:
 			h.removePrefix(action.Service.FunctionName, p)
-		} else {
+		default:
 			log.WithFields(log.Fields{
 				"state":   action.State,
 				"service": action.Service.name,
 			}).Warning("unhandled state received")
+
 			return
 		}
 	}
 
 	if h.Config.IPv4.Enable {
-		h.applyConfig(PrefixFamilyIPv4, h.Config.IPv4, h.prefixes)
+		if err := h.applyConfig(PrefixFamilyIPv4, h.Config.IPv4, h.prefixes); err != nil {
+			log.WithError(err).Error("could not apply bird config")
+		}
 	}
 
 	if h.Config.IPv6.Enable {
-		h.applyConfig(PrefixFamilyIPv6, h.Config.IPv6, h.prefixes)
+		if err := h.applyConfig(PrefixFamilyIPv6, h.Config.IPv6, h.prefixes); err != nil {
+			log.WithError(err).Error("could not apply bird6 config")
+		}
 	}
 }
 
 func (h *HealthCheck) applyConfig(protocol PrefixFamily, config protoConfig, prefixes PrefixCollection) error {
-	var err error
+	cLog := log.WithFields(log.Fields{
+		"file": config.ConfigFile,
+	})
+
 	// update bird config
-	err = updateBirdConfig(config.ConfigFile, protocol, prefixes)
+	err := updateBirdConfig(config.ConfigFile, protocol, prefixes)
 	if err != nil {
 		// if config did not change, we should still reload if we don't know the
 		// state of BIRD
-		if err == errConfigIdentical {
+		if errors.Is(err, errConfigIdentical) {
 			if h.didReloadBefore(protocol) {
-				log.WithFields(log.Fields{
-					"file": config.ConfigFile,
-				}).Warning("config did not change, not reloading")
+				cLog.Warning("config did not change, not reloading")
 
-				return err
+				return nil
 			}
 
-			log.WithFields(log.Fields{
-				"file": config.ConfigFile,
-			}).Info("config did not change, but reloading anyway")
+			cLog.Info("config did not change, but reloading anyway")
 
 			// break on any other error
 		} else {
-			log.WithFields(log.Fields{
-				"file":  config.ConfigFile,
-				"error": err.Error(),
-			}).Warning("error updating configuration")
+			cLog.WithError(err).Warning("error updating configuration")
 
 			return err
 		}
 	}
 
-	log.WithFields(log.Fields{
-		"file":    config.ConfigFile,
+	cLog = log.WithFields(log.Fields{
 		"command": config.ReloadCommand,
-	}).Info("prefixes updated, reloading")
-
-	reloadTimeout := 10 * time.Second
+	})
+	cLog.Info("prefixes updated, reloading")
 
 	// issue reload command, with some reasonable timeout
 	ctx, cancel := context.WithTimeout(context.Background(), reloadTimeout)
@@ -149,27 +158,18 @@ func (h *HealthCheck) applyConfig(protocol PrefixFamily, config protoConfig, pre
 	// We want to check the context error to see if the timeout was executed.
 	// The error returned by cmd.Output() will be OS specific based on what
 	// happens when a process is killed.
-	if ctx.Err() == context.DeadlineExceeded {
-		log.WithFields(log.Fields{
-			"command": config.ReloadCommand,
-			"timeout": reloadTimeout,
-		}).Warning("reloading timed out")
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		cLog.WithField("timeout", reloadTimeout).Warning("reloading timed out")
 
 		return ctx.Err()
 	}
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"command": config.ReloadCommand,
-			"output":  output,
-			"error":   err.Error(),
-		}).Warning("reloading failed")
+		cLog.WithError(err).WithField("output", output).Warning("reloading failed")
 	} else {
-		log.WithFields(log.Fields{
-			"command": config.ReloadCommand,
-		}).Debug("reloading succeeded")
+		cLog.Debug("reloading succeeded")
 
-		// mark succesful reload
+		// mark successful reload
 		h.reloads[string(protocol)] = true
 	}
 
