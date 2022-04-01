@@ -20,7 +20,8 @@ func TestConfig(t *testing.T) {
 	// read invalid TOML from file and check if it gets detected
 	err = ReadConfig(&Config{}, "testdata/config/invalidtoml")
 	if assert.Error(t, err) {
-		assert.Regexp(t, regexp.MustCompile("^could not parse config:"), err.Error())
+		assert.Contains(t, err.Error(), "could not parse config")
+		assert.Contains(t, err.Error(), "line 2, column 6")
 	}
 
 	// check for error when no services are defined

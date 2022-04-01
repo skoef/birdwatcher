@@ -30,7 +30,13 @@ func ReadConfig(conf *Config, configFile string) error {
 	}
 
 	if _, err := toml.DecodeFile(configFile, conf); err != nil {
-		return fmt.Errorf("could not parse config: %w", err)
+		errMsg := err.Error()
+		var parseErr toml.ParseError
+		if errors.As(err, &parseErr) {
+			errMsg = parseErr.ErrorWithPosition()
+		}
+
+		return fmt.Errorf("could not parse config: %s", errMsg)
 	}
 
 	if !conf.IPv4.Enable && !conf.IPv6.Enable {
