@@ -9,6 +9,8 @@ import (
 )
 
 func TestConfig(t *testing.T) {
+	t.Parallel()
+
 	// test check for valid file
 	t.Run("config not found", func(t *testing.T) {
 		t.Parallel()
