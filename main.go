@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"regexp"
-	"strings"
+	"runtime/debug"
 	"syscall"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -20,12 +19,6 @@ const (
 	systemdStatusBufferSize = 32
 )
 
-var (
-	// set during building
-	buildVersion = "HEAD"   //nolint:gochecknoglobals
-	buildBranch  = "master" //nolint:gochecknoglobals
-)
-
 //nolint:gochecknoinits
 func init() {
 	// initialize logging
@@ -34,31 +27,29 @@ func init() {
 }
 
 func main() {
-	var versionString string
-	// release or custom build
-	if regexp.MustCompile(`^v[0-9\.]+$`).MatchString(buildVersion) {
-		versionString = fmt.Sprintf("version %s", strings.Replace(buildVersion, "v", "", 1))
-	} else {
-		versionString = fmt.Sprintf("build %s (%s branch)", buildVersion, buildBranch)
-	}
-
 	var (
 		configFile  = flag.String("config", "/etc/birdwatcher.conf", "path to config file")
 		checkConfig = flag.Bool("check-config", false, "check config file and exit")
-		debug       = flag.Bool("debug", false, "increase loglevel to debug")
+		debugFlag   = flag.Bool("debug", false, "increase loglevel to debug")
 		useSystemd  = flag.Bool("systemd", false, "optimize behavior for running under systemd")
 		version     = flag.Bool("version", false, "show version and exit")
 	)
 	flag.Parse()
 
+	versionString := "(devel)"
+	if vcs, ok := debug.ReadBuildInfo(); ok {
+		versionString = vcs.Main.Version
+	}
+
 	if *version {
 		fmt.Printf("birdwatcher, %s\n", versionString)
-		os.Exit(0)
+
+		return
 	}
 
 	log.Infof("starting birdwatcher, %s", versionString)
 
-	if *debug {
+	if *debugFlag {
 		log.SetLevel(log.DebugLevel)
 	}
 
@@ -85,11 +76,12 @@ func main() {
 
 	if *checkConfig {
 		fmt.Printf("Configuration file %s OK\n", *configFile)
-		if *debug {
+		if *debugFlag {
 			configJSON, _ := json.MarshalIndent(config, "", "  ")
 			fmt.Println(string(configJSON))
 		}
-		os.Exit(0)
+
+		return
 	}
 
 	// start health checker
