@@ -1,7 +1,0 @@
-function foobar()
-{
-	return net ~ [
-		2001::/64,
-		2002::/48
-	];
-}

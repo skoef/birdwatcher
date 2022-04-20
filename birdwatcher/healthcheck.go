@@ -22,19 +22,18 @@ const (
 // HealthCheck -- struct holding everything needed for the never-ending health
 // check loop
 type HealthCheck struct {
-	stopped  chan interface{}
-	actions  chan *Action
-	services []*ServiceCheck
-	prefixes PrefixCollection
-	Config   Config
-	reloads  map[string]bool
+	stopped        chan interface{}
+	actions        chan *Action
+	services       []*ServiceCheck
+	prefixes       PrefixCollection
+	Config         Config
+	reloadedBefore bool
 }
 
 // NewHealthCheck returns a HealthCheck with given configuration
 func NewHealthCheck(c Config) HealthCheck {
 	h := HealthCheck{}
 	h.Config = c
-	h.reloads = make(map[string]bool)
 
 	return h
 }
@@ -79,10 +78,8 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan bool, status *c
 	}
 }
 
-func (h *HealthCheck) didReloadBefore(protocol PrefixFamily) bool {
-	reloaded, found := h.reloads[string(protocol)]
-
-	return (reloaded && found)
+func (h *HealthCheck) didReloadBefore() bool {
+	return h.reloadedBefore
 }
 
 func (h *HealthCheck) handleAction(action *Action, status *chan string) {
@@ -110,16 +107,8 @@ func (h *HealthCheck) handleAction(action *Action, status *chan string) {
 		*status <- su
 	}
 
-	if h.Config.IPv4.Enable {
-		if err := h.applyConfig(PrefixFamilyIPv4, h.Config.IPv4, h.prefixes); err != nil {
-			log.WithError(err).Error("could not apply bird config")
-		}
-	}
-
-	if h.Config.IPv6.Enable {
-		if err := h.applyConfig(PrefixFamilyIPv6, h.Config.IPv6, h.prefixes); err != nil {
-			log.WithError(err).Error("could not apply bird6 config")
-		}
+	if err := h.applyConfig(h.Config, h.prefixes); err != nil {
+		log.WithError(err).Error("could not apply BIRD config")
 	}
 }
 
@@ -151,18 +140,18 @@ func (h *HealthCheck) statusUpdate() string {
 	return status
 }
 
-func (h *HealthCheck) applyConfig(protocol PrefixFamily, config protoConfig, prefixes PrefixCollection) error {
+func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) error {
 	cLog := log.WithFields(log.Fields{
 		"file": config.ConfigFile,
 	})
 
 	// update bird config
-	err := updateBirdConfig(config.ConfigFile, protocol, prefixes)
+	err := updateBirdConfig(config.ConfigFile, prefixes)
 	if err != nil {
 		// if config did not change, we should still reload if we don't know the
 		// state of BIRD
 		if errors.Is(err, errConfigIdentical) {
-			if h.didReloadBefore(protocol) {
+			if h.didReloadBefore() {
 				cLog.Warning("config did not change, not reloading")
 
 				return nil
@@ -212,7 +201,7 @@ func (h *HealthCheck) applyConfig(protocol PrefixFamily, config protoConfig, pre
 		cLog.Debug("reloading succeeded")
 
 		// mark successful reload
-		h.reloads[string(protocol)] = true
+		h.reloadedBefore = true
 	}
 
 	return err

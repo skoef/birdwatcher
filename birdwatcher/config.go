@@ -11,15 +11,9 @@ import (
 
 // Config -- struct for holding definitions from configuration file
 type Config struct {
-	IPv4     protoConfig
-	IPv6     protoConfig
-	Services map[string]*ServiceCheck
-}
-
-type protoConfig struct {
-	Enable        bool
 	ConfigFile    string
 	ReloadCommand string
+	Services      map[string]*ServiceCheck
 }
 
 // ReadConfig reads TOML config from given file into given Config or returns
@@ -39,24 +33,12 @@ func ReadConfig(conf *Config, configFile string) error {
 		return fmt.Errorf("could not parse config: %s", errMsg)
 	}
 
-	if !conf.IPv4.Enable && !conf.IPv6.Enable {
-		return errors.New("enable either IPv4 or IPv6 or both")
+	if conf.ConfigFile == "" {
+		conf.ConfigFile = "/etc/bird/birdwatcher.conf"
 	}
 
-	if conf.IPv4.ConfigFile == "" {
-		conf.IPv4.ConfigFile = "/etc/bird/birdwatcher.conf"
-	}
-
-	if conf.IPv4.ReloadCommand == "" {
-		conf.IPv4.ReloadCommand = "/usr/sbin/birdc configure"
-	}
-
-	if conf.IPv6.ConfigFile == "" {
-		conf.IPv6.ConfigFile = "/etc/bird/birdwatcher6.conf"
-	}
-
-	if conf.IPv6.ReloadCommand == "" {
-		conf.IPv6.ReloadCommand = "/usr/sbin/birdc6 configure"
+	if conf.ReloadCommand == "" {
+		conf.ReloadCommand = "/usr/sbin/birdc configure"
 	}
 
 	if len(conf.Services) == 0 {

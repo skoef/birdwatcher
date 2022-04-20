@@ -1,6 +1,3 @@
-[ipv4]
-enable = true
-
 [services]
   [services."foo"]
     prefixes = ["192.168.0.0/24"]

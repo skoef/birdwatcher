@@ -11,7 +11,7 @@ var (
 	errConfigIdentical = errors.New("configuration file is identical")
 )
 
-func updateBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixCollection) error {
+func updateBirdConfig(filename string, prefixes PrefixCollection) error {
 	// write config to temp file
 	tmpFilename := fmt.Sprintf("%s.tmp", filename)
 	// make sure we don't keep tmp file around when something goes wrong
@@ -21,7 +21,7 @@ func updateBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixCol
 		}
 	}(tmpFilename)
 
-	if err := writeBirdConfig(tmpFilename, protocol, prefixes); err != nil {
+	if err := writeBirdConfig(tmpFilename, prefixes); err != nil {
 		return err
 	}
 
@@ -34,7 +34,7 @@ func updateBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixCol
 	return os.Rename(tmpFilename, filename)
 }
 
-func writeBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixCollection) error {
+func writeBirdConfig(filename string, prefixes PrefixCollection) error {
 	var err error
 
 	// open file
@@ -48,7 +48,7 @@ func writeBirdConfig(filename string, protocol PrefixFamily, prefixes PrefixColl
 
 	// append marshalled prefixsets
 	for _, p := range prefixes {
-		output += p.Marshal(protocol)
+		output += p.Marshal()
 	}
 
 	// write data to file

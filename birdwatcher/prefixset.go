@@ -19,17 +19,6 @@ var tplFuncs = template.FuncMap{
 // PrefixCollection represents prefixsets per function name
 type PrefixCollection map[string]*PrefixSet
 
-// PrefixFamily is either ipv4 or ipv6
-// Using these instead of the strings themselves prevents using unsupported families
-type PrefixFamily string
-
-const (
-	// PrefixFamilyIPv4 represents IPv4 prefixes
-	PrefixFamilyIPv4 = "ipv4"
-	// PrefixFamilyIPv6 represents IPv6 prefixes
-	PrefixFamilyIPv6 = "ipv6"
-)
-
 // PrefixSet represents a list of prefixes alongside a function name
 type PrefixSet struct {
 	prefixes     []net.IPNet
@@ -84,22 +73,17 @@ func (p *PrefixSet) Remove(prefix net.IPNet) {
 }
 
 // Marshal returns the BIRD function for this prefixset
-func (p PrefixSet) Marshal(family PrefixFamily) string {
+func (p PrefixSet) Marshal() string {
 	// init template
 	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionTemplate))
 
 	// init template body
-	var tplBody struct {
+	tplBody := struct {
 		FunctionName string
 		Prefixes     []net.IPNet
-	}
-	tplBody.FunctionName = p.functionName
-
-	switch family {
-	case PrefixFamilyIPv4:
-		tplBody.Prefixes = prefixesIPv4Only(p.prefixes)
-	case PrefixFamilyIPv6:
-		tplBody.Prefixes = prefixesIPv6Only(p.prefixes)
+	}{
+		FunctionName: p.functionName,
+		Prefixes:     p.prefixes,
 	}
 
 	// execute template and return output
@@ -109,28 +93,6 @@ func (p PrefixSet) Marshal(family PrefixFamily) string {
 	}
 
 	return buf.String()
-}
-
-func prefixesIPv4Only(f []net.IPNet) []net.IPNet {
-	r := make([]net.IPNet, 0)
-	for _, p := range f {
-		if p.IP.To4().Equal(p.IP) {
-			r = append(r, p)
-		}
-	}
-
-	return r
-}
-
-func prefixesIPv6Only(f []net.IPNet) []net.IPNet {
-	r := make([]net.IPNet, 0)
-	for _, p := range f {
-		if len(p.IP) == net.IPv6len {
-			r = append(r, p)
-		}
-	}
-
-	return r
 }
 
 // prefixPad is a helper function for the template
