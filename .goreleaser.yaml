@@ -1,0 +1,39 @@
+before:
+  hooks:
+    - go mod tidy
+dist: build
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+archives:
+  - format: binary
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+nfpms:
+  - package_name: birdwatcher
+    homepage: https://github.com/skoef/birdwatcher
+    maintainer: "Reinier Schoof <reinier@skoef.nl>"
+    description: healthchecker for BIRD-anycasted services
+    license: MIT
+    contents:
+      - src: dist/systemd/birdwatcher.service
+        dst: /lib/system/systemd/birdwatcher.service
+        file_info:
+          owner: root
+          group: root
+          mode: 0644
+    dependencies:
+      - libc6
+    formats:
+      - deb
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^Merge pull request'
