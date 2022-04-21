@@ -40,3 +40,4 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^Merge pull request'
+      - '^Merge branch'
