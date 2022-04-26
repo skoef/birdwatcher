@@ -2,7 +2,6 @@
 Description=healthchecker for BIRD-anycasted services
 Documentation=https://github.com/skoef/birdwatcher
 After=bird.service
-After=bird6.service
 
 [Service]
 Type=notify
