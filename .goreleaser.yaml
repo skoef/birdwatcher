@@ -33,6 +33,22 @@ nfpms:
       - libc6
     formats:
       - deb
+  - package_name: birdwatcher
+    homepage: https://github.com/skoef/birdwatcher
+    maintainer: "Reinier Schoof <reinier@skoef.nl>"
+    description: healthchecker for BIRD-anycasted services
+    license: MIT
+    contents:
+      - src: dist/systemd/birdwatcher.service
+        dst: /usr/lib/system/systemd/birdwatcher.service
+        file_info:
+          owner: root
+          group: root
+          mode: 0644
+    dependencies:
+      - glibc
+    formats:
+      - rpm
 changelog:
   sort: asc
   filters:

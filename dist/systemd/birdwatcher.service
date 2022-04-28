@@ -6,7 +6,6 @@ After=bird.service
 [Service]
 Type=notify
 Environment=CONFIG_FILE=/etc/birdwatcher.conf
-EnvironmentFile=-/etc/default/birdwatcher
 ExecStartPre=/usr/bin/birdwatcher -config $CONFIG_FILE -check-config
 ExecStart=/usr/bin/birdwatcher -config $CONFIG_FILE -systemd
 Restart=on-failure
