@@ -16,10 +16,10 @@ func TestPrefixSet_Add(t *testing.T) {
 	assert.Equal(t, 0, len(p.prefixes))
 
 	// add some prefixes
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}})
+	for _, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		p.Add(*prf)
+	}
 
 	// check if all 4 prefixes are there
 	assert.Equal(t, 4, len(p.prefixes))
@@ -29,7 +29,8 @@ func TestPrefixSet_Add(t *testing.T) {
 	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}}, p.prefixes[3])
 
 	// try to add a duplicate prefix
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}})
+	_, prf, _ := net.ParseCIDR("1.2.3.0/24")
+	p.Add(*prf)
 
 	// this shouldn't have changed the content of the PrefixSet
 	assert.Equal(t, 4, len(p.prefixes))
@@ -43,43 +44,39 @@ func TestPrefixSet_Remove(t *testing.T) {
 	p := NewPrefixSet("foobar")
 
 	// add some prefixes
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}})
+	prefixes := make([]net.IPNet, 4)
+	for i, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		p.Add(*prf)
+		prefixes[i] = *prf
+	}
 
 	// remove last prefix
 	// array should only be truncated
-	p.Remove(net.IPNet{
-		IP:   net.IP{3, 4, 5, 0},
-		Mask: net.IPMask{255, 255, 255, 192},
-	})
+	p.Remove(prefixes[3])
 
-	assert.Equal(t, 3, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[2])
+	if assert.Equal(t, 3, len(p.prefixes)) {
+		assert.Equal(t, net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+		assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
+		assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[2])
+	}
 
 	// remove first prefix
 	// last prefix will be first now
-	p.Remove(net.IPNet{
-		IP:   net.IP{1, 2, 3, 0},
-		Mask: net.IPMask{255, 255, 255, 0},
-	})
+	p.Remove(prefixes[0])
 
-	assert.Equal(t, 2, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+	if assert.Equal(t, 2, len(p.prefixes)) {
+		assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
+		assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+	}
 
 	// removing same prefix again, should make no difference
-	p.Remove(net.IPNet{
-		IP:   net.IP{1, 2, 3, 0},
-		Mask: net.IPMask{255, 255, 255, 0},
-	})
+	p.Remove(prefixes[0])
 
-	assert.Equal(t, 2, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+	if assert.Equal(t, 2, len(p.prefixes)) {
+		assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
+		assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+	}
 }
 
 func TestPrefixSet_Marshal(t *testing.T) {
@@ -88,35 +85,18 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	fixture, err := os.ReadFile("testdata/prefixset/no_prefixes")
 	require.NoError(t, err)
 	// should represent empty function returning false
-	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
+	assert.Equal(t, string(fixture), p.Marshal())
 
 	// add some prefixes
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{255, 255, 255, 255}})
-	p.Add(net.IPNet{IP: net.IP{2, 3, 4, 5}, Mask: net.IPMask{255, 255, 255, 192}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 6}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{4, 5, 6, 7}, Mask: net.IPMask{255, 255, 248, 0}})
+	for _, pref := range []string{"1.2.3.4/32", "2.3.4.0/26", "2001::/64", "2002::/48"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		p.Add(*prf)
+	}
 
-	// since these prefixes are only IPv4, IPv6 output should still be the same
-	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))
-
-	// IPv4 should represent function matching above prefixes
+	// should represent function matching above prefixes
 	fixture, err = os.ReadFile("testdata/prefixset/some_prefixes")
 	require.NoError(t, err)
-	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
-
-	// add IPv6 prefixes
-	_, pref, _ := net.ParseCIDR("2001::/64")
-	p.Add(*pref)
-	_, pref, _ = net.ParseCIDR("2002::/48")
-	p.Add(*pref)
-
-	// IPv4 output should still be the same
-	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
-
-	// IPv6 should represent the two prefixes
-	fixture, err = os.ReadFile("testdata/prefixset/some_prefixes_v6")
-	require.NoError(t, err)
-	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))
+	assert.Equal(t, string(fixture), p.Marshal())
 
 	// if we change the function name, it should reflect in the output
 	p.functionName = "something_else"
@@ -124,7 +104,7 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	fixture, err = os.ReadFile("testdata/prefixset/function_name")
 	require.NoError(t, err)
 	// should represent function matching above prefixes
-	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
+	assert.Equal(t, string(fixture), p.Marshal())
 }
 
 func TestPrefixSet_prefixPad(t *testing.T) {

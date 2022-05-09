@@ -1,7 +1,6 @@
 package birdwatcher
 
 import (
-	"net"
 	"regexp"
 	"testing"
 
@@ -29,16 +28,6 @@ func TestConfig(t *testing.T) {
 		if assert.Error(t, err) {
 			assert.Contains(t, err.Error(), "could not parse config")
 			assert.Contains(t, err.Error(), "line 2, column 6")
-		}
-	})
-
-	// check for error when no protocols are defined
-	t.Run("no protocols defined", func(t *testing.T) {
-		t.Parallel()
-
-		err := ReadConfig(&Config{}, "testdata/config/no_protocols")
-		if assert.Error(t, err) {
-			assert.Equal(t, "enable either IPv4 or IPv6 or both", err.Error())
 		}
 	})
 
@@ -102,24 +91,17 @@ func TestConfig(t *testing.T) {
 			return
 		}
 
-		assert.Equal(t, "/etc/bird/birdwatcher.conf", testConf.IPv4.ConfigFile)
-		assert.Equal(t, true, testConf.IPv4.Enable)
-		assert.Equal(t, "/usr/sbin/birdc configure", testConf.IPv4.ReloadCommand)
-		assert.Equal(t, "/etc/bird/birdwatcher6.conf", testConf.IPv6.ConfigFile)
-		assert.Equal(t, false, testConf.IPv6.Enable)
-		assert.Equal(t, "/usr/sbin/birdc6 configure", testConf.IPv6.ReloadCommand)
+		assert.Equal(t, defaultConfigFile, testConf.ConfigFile)
+		assert.Equal(t, defaultReloadCommand, testConf.ReloadCommand)
 		assert.Equal(t, 1, len(testConf.Services))
 		assert.Equal(t, "foo", testConf.Services["foo"].name)
-		assert.Equal(t, 1, testConf.Services["foo"].Interval)
-		assert.Equal(t, "match_route", testConf.Services["foo"].FunctionName)
-		assert.Equal(t, 1, testConf.Services["foo"].Fail)
-		assert.Equal(t, 1, testConf.Services["foo"].Rise)
-		assert.Equal(t, 10, testConf.Services["foo"].Timeout)
+		assert.Equal(t, defaultCheckInterval, testConf.Services["foo"].Interval)
+		assert.Equal(t, defaultFunctionName, testConf.Services["foo"].FunctionName)
+		assert.Equal(t, defaultServiceFail, testConf.Services["foo"].Fail)
+		assert.Equal(t, defaultServiceRise, testConf.Services["foo"].Rise)
+		assert.Equal(t, defaultServiceTimeout, testConf.Services["foo"].Timeout)
 		assert.Equal(t, 1, len(testConf.Services["foo"].prefixes))
-		assert.Equal(t, net.IPNet{
-			IP:   net.IP{192, 168, 0, 0},
-			Mask: net.IPMask{255, 255, 255, 0},
-		}, testConf.Services["foo"].prefixes[0])
+		assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
 
 		// check GetServices result
 		svcs := testConf.GetServices()
@@ -137,22 +119,13 @@ func TestConfig(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		assert.Equal(t, "/etc/birdwatcher.conf", testConf.IPv4.ConfigFile)
-		assert.Equal(t, true, testConf.IPv4.Enable)
-		assert.Equal(t, "/sbin/birdc configure", testConf.IPv4.ReloadCommand)
-		assert.Equal(t, "/birdwatcher6.conf", testConf.IPv6.ConfigFile)
-		assert.Equal(t, false, testConf.IPv6.Enable)
-		assert.Equal(t, "/usr/bin/birdc6 configure", testConf.IPv6.ReloadCommand)
+		assert.Equal(t, "/etc/birdwatcher.conf", testConf.ConfigFile)
+		assert.Equal(t, "/sbin/birdc configure", testConf.ReloadCommand)
 		assert.Equal(t, "foo_bar", testConf.Services["foo"].FunctionName)
-		assert.Equal(t, 2, len(testConf.Services["bar"].prefixes))
-		assert.Equal(t, net.IPNet{
-			IP:   net.IP{192, 168, 1, 0},
-			Mask: net.IPMask{255, 255, 255, 0},
-		}, testConf.Services["bar"].prefixes[0])
-		assert.Equal(t, net.IPNet{
-			IP:   net.IP{192, 168, 2, 0},
-			Mask: net.IPMask{255, 255, 255, 128},
-		}, testConf.Services["bar"].prefixes[1])
+		if assert.Equal(t, 2, len(testConf.Services["bar"].prefixes)) {
+			assert.Equal(t, "192.168.1.0/24", testConf.Services["bar"].prefixes[0].String())
+			assert.Equal(t, "fc00::/7", testConf.Services["bar"].prefixes[1].String())
+		}
 
 		// check GetServices result
 		svcs := testConf.GetServices()

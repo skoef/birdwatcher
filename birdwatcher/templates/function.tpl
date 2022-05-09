@@ -6,7 +6,7 @@ function {{.FunctionName}}()
 		{{.}}
 {{- end }}
 	];
-{{- else}}
+{{- else }}
 	return false;
-{{- end}}
+{{- end }}
 }

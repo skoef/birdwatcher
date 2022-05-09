@@ -11,16 +11,21 @@ import (
 
 // Config -- struct for holding definitions from configuration file
 type Config struct {
-	IPv4     protoConfig
-	IPv6     protoConfig
-	Services map[string]*ServiceCheck
-}
-
-type protoConfig struct {
-	Enable        bool
 	ConfigFile    string
 	ReloadCommand string
+	Services      map[string]*ServiceCheck
 }
+
+const (
+	defaultConfigFile    = "/etc/bird/birdwatcher.conf"
+	defaultReloadCommand = "/usr/sbin/birdc configure"
+
+	defaultFunctionName   = "match_route"
+	defaultCheckInterval  = 1
+	defaultServiceTimeout = 10
+	defaultServiceFail    = 1
+	defaultServiceRise    = 1
+)
 
 // ReadConfig reads TOML config from given file into given Config or returns
 // error on invalid configuration
@@ -39,24 +44,12 @@ func ReadConfig(conf *Config, configFile string) error {
 		return fmt.Errorf("could not parse config: %s", errMsg)
 	}
 
-	if !conf.IPv4.Enable && !conf.IPv6.Enable {
-		return errors.New("enable either IPv4 or IPv6 or both")
+	if conf.ConfigFile == "" {
+		conf.ConfigFile = defaultConfigFile
 	}
 
-	if conf.IPv4.ConfigFile == "" {
-		conf.IPv4.ConfigFile = "/etc/bird/birdwatcher.conf"
-	}
-
-	if conf.IPv4.ReloadCommand == "" {
-		conf.IPv4.ReloadCommand = "/usr/sbin/birdc configure"
-	}
-
-	if conf.IPv6.ConfigFile == "" {
-		conf.IPv6.ConfigFile = "/etc/bird/birdwatcher6.conf"
-	}
-
-	if conf.IPv6.ReloadCommand == "" {
-		conf.IPv6.ReloadCommand = "/usr/sbin/birdc6 configure"
+	if conf.ReloadCommand == "" {
+		conf.ReloadCommand = defaultReloadCommand
 	}
 
 	if len(conf.Services) == 0 {
@@ -69,7 +62,7 @@ func ReadConfig(conf *Config, configFile string) error {
 		s.name = name
 
 		if s.FunctionName == "" {
-			s.FunctionName = "match_route"
+			s.FunctionName = defaultFunctionName
 		}
 
 		// validate service
@@ -108,19 +101,19 @@ func (c Config) validateService(s *ServiceCheck) error {
 	}
 
 	if s.Interval <= 0 {
-		s.Interval = 1
+		s.Interval = defaultCheckInterval
 	}
 
 	if s.Timeout <= 0 {
-		s.Timeout = 10
+		s.Timeout = defaultServiceTimeout
 	}
 
 	if s.Fail <= 0 {
-		s.Fail = 1
+		s.Fail = defaultServiceFail
 	}
 
 	if s.Rise <= 0 {
-		s.Rise = 1
+		s.Rise = defaultServiceRise
 	}
 
 	if len(s.Prefixes) == 0 {

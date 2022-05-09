@@ -1,6 +1,3 @@
-[ipv4]
-enable = true
-
 [services]
   [services."foo"]
     command = "/usr/bin/true"

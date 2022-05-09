@@ -47,27 +47,16 @@ func TestHealthCheckDidReloadBefore(t *testing.T) {
 	hc := NewHealthCheck(Config{})
 
 	// expect both to fail
-	assert.Equal(t, false, hc.didReloadBefore("ipv4"))
-	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
+	assert.False(t, hc.didReloadBefore())
 
-	hc.reloads["ipv4"] = true
+	// should succeed now
+	hc.reloadedBefore = true
+	assert.True(t, hc.didReloadBefore())
 
-	// expect only IPv6 to fail
-	assert.Equal(t, true, hc.didReloadBefore("ipv4"))
-	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
+	hc.reloadedBefore = false
 
-	hc.reloads["ipv6"] = true
-
-	// expect both to succeed
-	assert.Equal(t, true, hc.didReloadBefore("ipv4"))
-	assert.Equal(t, true, hc.didReloadBefore("ipv6"))
-
-	hc.reloads["ipv4"] = false
-	hc.reloads["ipv6"] = false
-
-	// expect both to fail again
-	assert.Equal(t, false, hc.didReloadBefore("ipv4"))
-	assert.Equal(t, false, hc.didReloadBefore("ipv6"))
+	// expect to fail again
+	assert.False(t, hc.didReloadBefore())
 }
 
 func TestHealthCheck_handleAction(t *testing.T) {

@@ -1,11 +1,5 @@
-[ipv4]
-enable = true
 configfile = "/etc/birdwatcher.conf"
 reloadcommand = "/sbin/birdc configure"
-
-[ipv6]
-configfile = "/birdwatcher6.conf"
-reloadcommand = "/usr/bin/birdc6 configure"
 
 [services]
   [services."foo"]
@@ -14,4 +8,4 @@ reloadcommand = "/usr/bin/birdc6 configure"
     functionname = "foo_bar"
   [services."bar"]
     command = "/bin/false"
-    prefixes = ["192.168.1.0/24", "192.168.2.0/25"]
+    prefixes = ["192.168.1.0/24", "fc00::/7"]
