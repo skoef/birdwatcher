@@ -31,10 +31,10 @@ func TestWriteBirdConfig(t *testing.T) {
 
 	assert.Equal(t, fixture, data)
 
-	prefixes["match_route"].Add(net.IPNet{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{255, 255, 255, 255}})
-	prefixes["match_route"].Add(net.IPNet{IP: net.IP{2, 3, 4, 5}, Mask: net.IPMask{255, 255, 255, 192}})
-	prefixes["match_route"].Add(net.IPNet{IP: net.IP{3, 4, 5, 6}, Mask: net.IPMask{255, 255, 255, 0}})
-	prefixes["match_route"].Add(net.IPNet{IP: net.IP{4, 5, 6, 7}, Mask: net.IPMask{255, 255, 248, 0}})
+	for _, pref := range []string{"1.2.3.4/32", "2.3.4.5/26", "3.4.5.6/24", "4.5.6.7/21"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		prefixes["match_route"].Add(*prf)
+	}
 
 	// write bird config to it
 	err = writeBirdConfig(tmpFile.Name(), PrefixFamilyIPv4, prefixes)

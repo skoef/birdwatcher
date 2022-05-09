@@ -22,6 +22,19 @@ type protoConfig struct {
 	ReloadCommand string
 }
 
+const (
+	defaultConfigFileV4    = "/etc/bird/birdwatcher.conf"
+	defaultConfigFileV6    = "/etc/bird/birdwatcher6.conf"
+	defaultReloadCommandV4 = "/usr/sbin/birdc configure"
+	defaultReloadCommandV6 = "/usr/sbin/birdc6 configure"
+
+	defaultFunctionName   = "match_route"
+	defaultCheckInterval  = 1
+	defaultServiceTimeout = 10
+	defaultServiceFail    = 1
+	defaultServiceRise    = 1
+)
+
 // ReadConfig reads TOML config from given file into given Config or returns
 // error on invalid configuration
 func ReadConfig(conf *Config, configFile string) error {
@@ -44,19 +57,19 @@ func ReadConfig(conf *Config, configFile string) error {
 	}
 
 	if conf.IPv4.ConfigFile == "" {
-		conf.IPv4.ConfigFile = "/etc/bird/birdwatcher.conf"
+		conf.IPv4.ConfigFile = defaultConfigFileV4
 	}
 
 	if conf.IPv4.ReloadCommand == "" {
-		conf.IPv4.ReloadCommand = "/usr/sbin/birdc configure"
+		conf.IPv4.ReloadCommand = defaultReloadCommandV4
 	}
 
 	if conf.IPv6.ConfigFile == "" {
-		conf.IPv6.ConfigFile = "/etc/bird/birdwatcher6.conf"
+		conf.IPv6.ConfigFile = defaultConfigFileV6
 	}
 
 	if conf.IPv6.ReloadCommand == "" {
-		conf.IPv6.ReloadCommand = "/usr/sbin/birdc6 configure"
+		conf.IPv6.ReloadCommand = defaultReloadCommandV6
 	}
 
 	if len(conf.Services) == 0 {
@@ -69,7 +82,7 @@ func ReadConfig(conf *Config, configFile string) error {
 		s.name = name
 
 		if s.FunctionName == "" {
-			s.FunctionName = "match_route"
+			s.FunctionName = defaultFunctionName
 		}
 
 		// validate service
@@ -108,19 +121,19 @@ func (c Config) validateService(s *ServiceCheck) error {
 	}
 
 	if s.Interval <= 0 {
-		s.Interval = 1
+		s.Interval = defaultCheckInterval
 	}
 
 	if s.Timeout <= 0 {
-		s.Timeout = 10
+		s.Timeout = defaultServiceTimeout
 	}
 
 	if s.Fail <= 0 {
-		s.Fail = 1
+		s.Fail = defaultServiceFail
 	}
 
 	if s.Rise <= 0 {
-		s.Rise = 1
+		s.Rise = defaultServiceRise
 	}
 
 	if len(s.Prefixes) == 0 {

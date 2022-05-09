@@ -22,17 +22,39 @@ nfpms:
     maintainer: "Reinier Schoof <reinier@skoef.nl>"
     description: healthchecker for BIRD-anycasted services
     license: MIT
+    bindir: /usr/sbin
     contents:
       - src: dist/systemd/birdwatcher.service
-        dst: /lib/system/systemd/birdwatcher.service
+        dst: /lib/systemd/system/birdwatcher.service
+        packager: deb
         file_info:
           owner: root
           group: root
           mode: 0644
-    dependencies:
-      - libc6
+      - src: dist/systemd/birdwatcher.service
+        dst: /usr/lib/systemd/system/birdwatcher.service
+        packager: rpm
+        file_info:
+          owner: root
+          group: root
+          mode: 0644
+      - src: dist/birdwatcher.conf
+        dst: /etc/birdwatcher.conf
+        type: config|noreplace
+        file_info:
+          owner: root
+          group: root
+          mode: 0644
     formats:
       - deb
+      - rpm
+    overrides:
+      deb:
+        dependencies:
+        - libc6
+      rpm:
+        dependencies:
+        - glibc
 changelog:
   sort: asc
   filters:

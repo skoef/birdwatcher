@@ -16,37 +16,42 @@ func TestPrefixSet_Add(t *testing.T) {
 	assert.Equal(t, 0, len(p.prefixes))
 
 	// add some prefixes
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}})
+	for _, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		p.Add(*prf)
+	}
 
 	// check if all 4 prefixes are there
-	assert.Equal(t, 4, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[2])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}}, p.prefixes[3])
+	if assert.Equal(t, 4, len(p.prefixes)) {
+		assert.Equal(t, "1.2.3.0/24", p.prefixes[0].String())
+		assert.Equal(t, "2.3.4.0/24", p.prefixes[1].String())
+		assert.Equal(t, "3.4.5.0/24", p.prefixes[2].String())
+		assert.Equal(t, "3.4.5.0/26", p.prefixes[3].String())
+	}
 
 	// try to add a duplicate prefix
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}})
+	_, prf, _ := net.ParseCIDR("1.2.3.0/24")
+	p.Add(*prf)
 
 	// this shouldn't have changed the content of the PrefixSet
-	assert.Equal(t, 4, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[2])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}}, p.prefixes[3])
+	if assert.Equal(t, 4, len(p.prefixes)) {
+		assert.Equal(t, "1.2.3.0/24", p.prefixes[0].String())
+		assert.Equal(t, "2.3.4.0/24", p.prefixes[1].String())
+		assert.Equal(t, "3.4.5.0/24", p.prefixes[2].String())
+		assert.Equal(t, "3.4.5.0/26", p.prefixes[3].String())
+	}
 }
 
 func TestPrefixSet_Remove(t *testing.T) {
 	p := NewPrefixSet("foobar")
 
 	// add some prefixes
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}})
+	prefixes := make([]net.IPNet, 4)
+	for i, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		p.Add(*prf)
+		prefixes[i] = *prf
+	}
 
 	// remove last prefix
 	// array should only be truncated
@@ -55,10 +60,11 @@ func TestPrefixSet_Remove(t *testing.T) {
 		Mask: net.IPMask{255, 255, 255, 192},
 	})
 
-	assert.Equal(t, 3, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[2])
+	if assert.Equal(t, 3, len(p.prefixes)) {
+		assert.Equal(t, "1.2.3.0/24", p.prefixes[0].String())
+		assert.Equal(t, "2.3.4.0/24", p.prefixes[1].String())
+		assert.Equal(t, "3.4.5.0/24", p.prefixes[2].String())
+	}
 
 	// remove first prefix
 	// last prefix will be first now
@@ -67,9 +73,10 @@ func TestPrefixSet_Remove(t *testing.T) {
 		Mask: net.IPMask{255, 255, 255, 0},
 	})
 
-	assert.Equal(t, 2, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+	if assert.Equal(t, 2, len(p.prefixes)) {
+		assert.Equal(t, "3.4.5.0/24", p.prefixes[0].String())
+		assert.Equal(t, "2.3.4.0/24", p.prefixes[1].String())
+	}
 
 	// removing same prefix again, should make no difference
 	p.Remove(net.IPNet{
@@ -77,9 +84,10 @@ func TestPrefixSet_Remove(t *testing.T) {
 		Mask: net.IPMask{255, 255, 255, 0},
 	})
 
-	assert.Equal(t, 2, len(p.prefixes))
-	assert.Equal(t, net.IPNet{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[1])
-	assert.Equal(t, net.IPNet{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}}, p.prefixes[0])
+	if assert.Equal(t, 2, len(p.prefixes)) {
+		assert.Equal(t, "3.4.5.0/24", p.prefixes[0].String())
+		assert.Equal(t, "2.3.4.0/24", p.prefixes[1].String())
+	}
 }
 
 func TestPrefixSet_Marshal(t *testing.T) {
@@ -91,10 +99,10 @@ func TestPrefixSet_Marshal(t *testing.T) {
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv4))
 
 	// add some prefixes
-	p.Add(net.IPNet{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{255, 255, 255, 255}})
-	p.Add(net.IPNet{IP: net.IP{2, 3, 4, 5}, Mask: net.IPMask{255, 255, 255, 192}})
-	p.Add(net.IPNet{IP: net.IP{3, 4, 5, 6}, Mask: net.IPMask{255, 255, 255, 0}})
-	p.Add(net.IPNet{IP: net.IP{4, 5, 6, 7}, Mask: net.IPMask{255, 255, 248, 0}})
+	for _, pref := range []string{"1.2.3.4/32", "2.3.4.0/26", "3.4.5.6/24", "4.5.6.7/21"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		p.Add(*prf)
+	}
 
 	// since these prefixes are only IPv4, IPv6 output should still be the same
 	assert.Equal(t, string(fixture), p.Marshal(PrefixFamilyIPv6))

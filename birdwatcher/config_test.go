@@ -1,7 +1,6 @@
 package birdwatcher
 
 import (
-	"net"
 	"regexp"
 	"testing"
 
@@ -102,24 +101,21 @@ func TestConfig(t *testing.T) {
 			return
 		}
 
-		assert.Equal(t, "/etc/bird/birdwatcher.conf", testConf.IPv4.ConfigFile)
+		assert.Equal(t, defaultConfigFileV4, testConf.IPv4.ConfigFile)
 		assert.Equal(t, true, testConf.IPv4.Enable)
-		assert.Equal(t, "/usr/sbin/birdc configure", testConf.IPv4.ReloadCommand)
-		assert.Equal(t, "/etc/bird/birdwatcher6.conf", testConf.IPv6.ConfigFile)
+		assert.Equal(t, defaultReloadCommandV4, testConf.IPv4.ReloadCommand)
+		assert.Equal(t, defaultConfigFileV6, testConf.IPv6.ConfigFile)
 		assert.Equal(t, false, testConf.IPv6.Enable)
-		assert.Equal(t, "/usr/sbin/birdc6 configure", testConf.IPv6.ReloadCommand)
+		assert.Equal(t, defaultReloadCommandV6, testConf.IPv6.ReloadCommand)
 		assert.Equal(t, 1, len(testConf.Services))
 		assert.Equal(t, "foo", testConf.Services["foo"].name)
-		assert.Equal(t, 1, testConf.Services["foo"].Interval)
-		assert.Equal(t, "match_route", testConf.Services["foo"].FunctionName)
-		assert.Equal(t, 1, testConf.Services["foo"].Fail)
-		assert.Equal(t, 1, testConf.Services["foo"].Rise)
-		assert.Equal(t, 10, testConf.Services["foo"].Timeout)
+		assert.Equal(t, defaultCheckInterval, testConf.Services["foo"].Interval)
+		assert.Equal(t, defaultFunctionName, testConf.Services["foo"].FunctionName)
+		assert.Equal(t, defaultServiceFail, testConf.Services["foo"].Fail)
+		assert.Equal(t, defaultServiceRise, testConf.Services["foo"].Rise)
+		assert.Equal(t, defaultServiceTimeout, testConf.Services["foo"].Timeout)
 		assert.Equal(t, 1, len(testConf.Services["foo"].prefixes))
-		assert.Equal(t, net.IPNet{
-			IP:   net.IP{192, 168, 0, 0},
-			Mask: net.IPMask{255, 255, 255, 0},
-		}, testConf.Services["foo"].prefixes[0])
+		assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
 
 		// check GetServices result
 		svcs := testConf.GetServices()
@@ -145,14 +141,8 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, "/usr/bin/birdc6 configure", testConf.IPv6.ReloadCommand)
 		assert.Equal(t, "foo_bar", testConf.Services["foo"].FunctionName)
 		assert.Equal(t, 2, len(testConf.Services["bar"].prefixes))
-		assert.Equal(t, net.IPNet{
-			IP:   net.IP{192, 168, 1, 0},
-			Mask: net.IPMask{255, 255, 255, 0},
-		}, testConf.Services["bar"].prefixes[0])
-		assert.Equal(t, net.IPNet{
-			IP:   net.IP{192, 168, 2, 0},
-			Mask: net.IPMask{255, 255, 255, 128},
-		}, testConf.Services["bar"].prefixes[1])
+		assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
+		assert.Equal(t, "192.168.2.0/25", testConf.Services["bar"].prefixes[1].String())
 
 		// check GetServices result
 		svcs := testConf.GetServices()
