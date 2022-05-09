@@ -55,10 +55,7 @@ func TestPrefixSet_Remove(t *testing.T) {
 
 	// remove last prefix
 	// array should only be truncated
-	p.Remove(net.IPNet{
-		IP:   net.IP{3, 4, 5, 0},
-		Mask: net.IPMask{255, 255, 255, 192},
-	})
+	p.Remove(prefixes[3])
 
 	if assert.Equal(t, 3, len(p.prefixes)) {
 		assert.Equal(t, "1.2.3.0/24", p.prefixes[0].String())
@@ -68,10 +65,7 @@ func TestPrefixSet_Remove(t *testing.T) {
 
 	// remove first prefix
 	// last prefix will be first now
-	p.Remove(net.IPNet{
-		IP:   net.IP{1, 2, 3, 0},
-		Mask: net.IPMask{255, 255, 255, 0},
-	})
+	p.Remove(prefixes[0])
 
 	if assert.Equal(t, 2, len(p.prefixes)) {
 		assert.Equal(t, "3.4.5.0/24", p.prefixes[0].String())
@@ -79,6 +73,7 @@ func TestPrefixSet_Remove(t *testing.T) {
 	}
 
 	// removing same prefix again, should make no difference
+	// (we're creating the prefix again since it is no longer in prefixes)
 	p.Remove(net.IPNet{
 		IP:   net.IP{1, 2, 3, 0},
 		Mask: net.IPMask{255, 255, 255, 0},
