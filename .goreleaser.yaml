@@ -22,6 +22,7 @@ nfpms:
     maintainer: "Reinier Schoof <reinier@skoef.nl>"
     description: healthchecker for BIRD-anycasted services
     license: MIT
+    bindir: /usr/sbin
     contents:
       - src: dist/systemd/birdwatcher.service
         dst: /lib/systemd/system/birdwatcher.service
