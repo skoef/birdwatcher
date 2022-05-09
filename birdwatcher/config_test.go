@@ -100,8 +100,9 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, defaultServiceFail, testConf.Services["foo"].Fail)
 		assert.Equal(t, defaultServiceRise, testConf.Services["foo"].Rise)
 		assert.Equal(t, defaultServiceTimeout, testConf.Services["foo"].Timeout)
-		assert.Equal(t, 1, len(testConf.Services["foo"].prefixes))
-		assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
+		if assert.Equal(t, 1, len(testConf.Services["foo"].prefixes)) {
+			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
+		}
 
 		// check GetServices result
 		svcs := testConf.GetServices()
@@ -122,6 +123,9 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, "/etc/birdwatcher.conf", testConf.ConfigFile)
 		assert.Equal(t, "/sbin/birdc configure", testConf.ReloadCommand)
 		assert.Equal(t, "foo_bar", testConf.Services["foo"].FunctionName)
+		if assert.Equal(t, 1, len(testConf.Services["foo"].prefixes)) {
+			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
+		}
 		if assert.Equal(t, 2, len(testConf.Services["bar"].prefixes)) {
 			assert.Equal(t, "192.168.1.0/24", testConf.Services["bar"].prefixes[0].String())
 			assert.Equal(t, "fc00::/7", testConf.Services["bar"].prefixes[1].String())
