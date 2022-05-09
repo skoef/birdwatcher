@@ -4,7 +4,7 @@
 
 > healthchecker for [BIRD](https://bird.network.cz/)-anycasted services
 
-**NOTE**: this version of birdwatcher is designed to work with BIRD version 2 and up. If you want to use birdwatcher with BIRD 1.x, refer to the `bird1` branch.
+:warning: **NOTE**: this version of birdwatcher is designed to work with BIRD version 2 and up. If you want to use birdwatcher with BIRD 1.x, refer to the `bird1` branch.
 
 This project is heavily influenced by [anycast-healthchecker](https://github.com/unixsurfer/anycast_healthchecker). If you want to know more about use cases of birdwatcher, please read their excellent documention about anycasted services and how a healthchecker can contribute to a more stable service availability.
 
