@@ -136,12 +136,12 @@ func TestPrefixSet_Marshal(t *testing.T) {
 }
 
 func TestPrefixSet_prefixPad(t *testing.T) {
-	prefixes := []net.IPNet{
-		{IP: net.IP{1, 2, 3, 0}, Mask: net.IPMask{255, 255, 255, 0}},
-		{IP: net.IP{2, 3, 4, 0}, Mask: net.IPMask{255, 255, 255, 0}},
-		{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 0}},
-		{IP: net.IP{3, 4, 5, 0}, Mask: net.IPMask{255, 255, 255, 192}},
+	prefixes := make([]net.IPNet, 4)
+	for i, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
+		_, prf, _ := net.ParseCIDR(pref)
+		prefixes[i] = *prf
 	}
+
 	padded := prefixPad(prefixes)
 	assert.Equal(t, "1.2.3.0/24,2.3.4.0/24,3.4.5.0/24,3.4.5.0/26", strings.Join(padded, ""))
 }
