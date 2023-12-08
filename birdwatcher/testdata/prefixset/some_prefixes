@@ -1,4 +1,4 @@
-function foobar()
+function foobar() -> bool
 {
 	return net ~ [
 		1.2.3.4/32,

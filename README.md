@@ -32,7 +32,7 @@ Sample output in `/etc/bird/birdwatcher.conf` if `haproxy_check.sh` checks out w
 
 ```
 # DO NOT EDIT MANUALLY
-function match_route()
+function match_route() -> bool
 {
 	return net ~ [
 		192.168.0.0/24,
@@ -45,7 +45,7 @@ As soon as birdwatcher finds out haproxy is down, it will change the content in 
 
 ```
 # DO NOT EDIT MANUALLY
-function match_route()
+function match_route() -> bool
 {
 	return false;
 }

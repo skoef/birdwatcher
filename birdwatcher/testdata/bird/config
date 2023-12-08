@@ -1,5 +1,5 @@
 # DO NOT EDIT MANUALLY
-function match_route()
+function match_route() -> bool
 {
 	return net ~ [
 		1.2.3.4/32,
