@@ -1,4 +1,4 @@
-function something_else()
+function something_else() -> bool
 {
 	return net ~ [
 		1.2.3.4/32,

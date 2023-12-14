@@ -1,4 +1,4 @@
-function {{.FunctionName}}()
+function {{.FunctionName}}() -> bool
 {
 {{- with .Prefixes}}
 	return net ~ [
