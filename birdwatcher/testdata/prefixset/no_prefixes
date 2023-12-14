@@ -1,4 +1,4 @@
-function foobar()
+function foobar() -> bool
 {
 	return false;
 }
