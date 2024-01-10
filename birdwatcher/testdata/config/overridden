@@ -6,6 +6,10 @@ reloadcommand = "/sbin/birdc configure"
     command = "/bin/true"
     prefixes = ["192.168.0.0/24"]
     functionname = "foo_bar"
+    interval = 10
+    rise = 20
+    fail = 30
+    timeout = "40s"
   [services."bar"]
     command = "/bin/false"
     prefixes = ["192.168.1.0/24", "fc00::/7"]

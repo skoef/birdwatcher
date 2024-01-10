@@ -3,6 +3,7 @@ package birdwatcher
 import (
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -135,15 +136,17 @@ func TestConfig(t *testing.T) {
 		svcs := testConf.GetServices()
 		if assert.Equal(t, 2, len(svcs)) {
 			// order of the services is not guaranteed
-			if svcs[0].name == "foo" {
-				assert.Equal(t, "foo", svcs[0].name)
-			} else {
-				assert.Equal(t, "bar", svcs[0].name)
-			}
-			if svcs[1].name == "bar" {
-				assert.Equal(t, "bar", svcs[1].name)
-			} else {
-				assert.Equal(t, "foo", svcs[1].name)
+			for _, svc := range svcs {
+				switch svc.name {
+				case "foo":
+					assert.Equal(t, 10, svc.Interval)
+					assert.Equal(t, 20, svc.Rise)
+					assert.Equal(t, 30, svc.Fail)
+					assert.Equal(t, time.Second*40, svc.Timeout)
+				case "bar":
+				default:
+					assert.Fail(t, "unexpected service name", "service name: %s", svc.name)
+				}
 			}
 		}
 	})

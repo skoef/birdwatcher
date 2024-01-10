@@ -28,7 +28,7 @@ type ServiceCheck struct {
 	FunctionName       string
 	Command            string
 	Interval           int
-	Timeout            int
+	Timeout            time.Duration
 	Fail               int
 	Rise               int
 	Prefixes           []string
@@ -159,12 +159,8 @@ func (s *ServiceCheck) performCheck() error {
 	})
 	sLog.Debug("performing check")
 
-	if s.Timeout <= 0 {
-		s.Timeout = 1
-	}
-
 	// create context that automatically times out
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.Timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), s.Timeout)
 	defer cancel()
 
 	// split reload command into command/args assuming the first part is the command

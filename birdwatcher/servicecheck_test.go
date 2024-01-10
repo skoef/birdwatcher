@@ -3,6 +3,7 @@ package birdwatcher
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +17,7 @@ func TestServiceCheckPushChannel(t *testing.T) {
 		Fail:               3,
 		Rise:               2,
 		Interval:           1,
-		Timeout:            2,
+		Timeout:            2 * time.Second,
 		prefixes: []net.IPNet{
 			{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{255, 255, 255, 0}},
 		},

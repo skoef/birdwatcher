@@ -16,6 +16,14 @@ When I found out about anycast-healthchecker (sadly only recently on [HaproxyCon
 
 It is written in Go because I like it and running multiple threads is easy.
 
+## Upgrading
+
+### Upgrading from 1.0.0-beta2 to 1.0.0-beta3
+
+The notation of `timeout` for services changed from int (for number of seconds) to the format `time.ParseDuration` uses, such as "300ms", "-1.5h" or "2h45m".
+
+For example: `10` should become `"10s"` in your config files.
+
 ## Example usage
 
 This simple example configures a single service, runs `haproxy_check.sh` every second and manages 2 prefixes based on the exit code of the script:
@@ -92,7 +100,7 @@ Each service under this section can have the following settings:
 | command      | Command that will be periodically run to check if the service should be considered up or down. The result is based on the exit code: a non-zero exit codes makes birdwatcher decide the service is down, otherwise it's up. **Required** |
 | functionname | Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.                                                                   |
 | interval     | The interval in seconds at which birdwatcher will check the service. Defaults to **1**                                                                                                                                                   |
-| timeout      | Time in seconds in which the check command should complete. Afterwards it will be handled as if the check command failed. Defaults to **10**                                                                                             |
+| timeout      | Time in which the check command should complete. Afterwards it will be handled as if the check command failed. Defaults to **10s**, format following that of [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration).              |
 | fail         | The amount of times the check command should fail before the service is considered to be down. Defaults to **1**                                                                                                                         |
 | rise         | The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**                                                                                                                        |
 | prefixes     | Array of prefixes, mixed IPv4 and IPv6. At least 1 prefix is **required** per service                                                                                                                                                    |
