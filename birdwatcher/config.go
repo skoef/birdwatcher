@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -22,7 +23,7 @@ const (
 
 	defaultFunctionName   = "match_route"
 	defaultCheckInterval  = 1
-	defaultServiceTimeout = 10
+	defaultServiceTimeout = 10 * time.Second
 	defaultServiceFail    = 1
 	defaultServiceRise    = 1
 )
