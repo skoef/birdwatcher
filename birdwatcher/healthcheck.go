@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,6 +19,15 @@ const (
 	actionsChannelSize = 16
 	// timeout when reloading bird
 	reloadTimeout = 10 * time.Second
+)
+
+var (
+	prefixStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "prefix",
+		Name:      "state",
+		Help:      "Current health state per prefix",
+	}, []string{"service", "prefix"})
 )
 
 // HealthCheck -- struct holding everything needed for the never-ending health
@@ -86,9 +97,9 @@ func (h *HealthCheck) handleAction(action *Action, status *chan string) {
 	for _, p := range action.Prefixes {
 		switch action.State {
 		case ServiceStateUp:
-			h.addPrefix(action.Service.FunctionName, p)
+			h.addPrefix(action.Service, p)
 		case ServiceStateDown:
-			h.removePrefix(action.Service.FunctionName, p)
+			h.removePrefix(action.Service, p)
 		default:
 			log.WithFields(log.Fields{
 				"state":   action.State,
@@ -207,16 +218,18 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	return err
 }
 
-func (h *HealthCheck) addPrefix(functionName string, prefix net.IPNet) {
-	h.ensurePrefixSet(functionName)
+func (h *HealthCheck) addPrefix(svc *ServiceCheck, prefix net.IPNet) {
+	h.ensurePrefixSet(svc.FunctionName)
 
-	h.prefixes[functionName].Add(prefix)
+	h.prefixes[svc.FunctionName].Add(prefix)
+	prefixStateMetric.WithLabelValues(svc.Name(), prefix.String()).Set(1.0)
 }
 
-func (h *HealthCheck) removePrefix(functionName string, prefix net.IPNet) {
-	h.ensurePrefixSet(functionName)
+func (h *HealthCheck) removePrefix(svc *ServiceCheck, prefix net.IPNet) {
+	h.ensurePrefixSet(svc.FunctionName)
 
-	h.prefixes[functionName].Remove(prefix)
+	h.prefixes[svc.FunctionName].Remove(prefix)
+	prefixStateMetric.WithLabelValues(svc.Name(), prefix.String()).Set(0.0)
 }
 
 func (h *HealthCheck) ensurePrefixSet(functionName string) {

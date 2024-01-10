@@ -5,12 +5,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
 
 	"github.com/coreos/go-systemd/daemon"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/skoef/birdwatcher/birdwatcher"
 )
@@ -82,6 +84,22 @@ func main() {
 		}
 
 		return
+	}
+
+	// enable prometheus
+	// Expose /metrics HTTP endpoint using the created custom registry.
+	if config.Prometheus.Enabled {
+		log.WithFields(log.Fields{
+			"port": config.Prometheus.Port,
+			"path": config.Prometheus.Path,
+		}).Info("starting prometheus exporter")
+
+		http.Handle(config.Prometheus.Path, promhttp.Handler())
+		go func() {
+			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Prometheus.Port), nil); err != nil {
+				log.WithError(err).Fatal("could not start prometheus exporter")
+			}
+		}()
 	}
 
 	// start health checker
