@@ -94,6 +94,9 @@ func TestConfig(t *testing.T) {
 
 		assert.Equal(t, defaultConfigFile, testConf.ConfigFile)
 		assert.Equal(t, defaultReloadCommand, testConf.ReloadCommand)
+		assert.False(t, testConf.Prometheus.Enabled)
+		assert.Equal(t, defaultPrometheusPort, testConf.Prometheus.Port)
+		assert.Equal(t, defaultPrometheusPath, testConf.Prometheus.Path)
 		assert.Equal(t, 1, len(testConf.Services))
 		assert.Equal(t, "foo", testConf.Services["foo"].name)
 		assert.Equal(t, defaultCheckInterval, testConf.Services["foo"].Interval)
@@ -123,6 +126,9 @@ func TestConfig(t *testing.T) {
 		}
 		assert.Equal(t, "/etc/birdwatcher.conf", testConf.ConfigFile)
 		assert.Equal(t, "/sbin/birdc configure", testConf.ReloadCommand)
+		assert.True(t, testConf.Prometheus.Enabled)
+		assert.Equal(t, 1234, testConf.Prometheus.Port)
+		assert.Equal(t, "/something", testConf.Prometheus.Path)
 		assert.Equal(t, "foo_bar", testConf.Services["foo"].FunctionName)
 		if assert.Equal(t, 1, len(testConf.Services["foo"].prefixes)) {
 			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())

@@ -14,12 +14,19 @@ import (
 type Config struct {
 	ConfigFile    string
 	ReloadCommand string
-	Services      map[string]*ServiceCheck
+	Prometheus    struct {
+		Enabled bool
+		Port    int
+		Path    string
+	}
+	Services map[string]*ServiceCheck
 }
 
 const (
-	defaultConfigFile    = "/etc/bird/birdwatcher.conf"
-	defaultReloadCommand = "/usr/sbin/birdc configure"
+	defaultConfigFile     = "/etc/bird/birdwatcher.conf"
+	defaultReloadCommand  = "/usr/sbin/birdc configure"
+	defaultPrometheusPort = 9091
+	defaultPrometheusPath = "/metrics"
 
 	defaultFunctionName   = "match_route"
 	defaultCheckInterval  = 1
@@ -51,6 +58,14 @@ func ReadConfig(conf *Config, configFile string) error {
 
 	if conf.ReloadCommand == "" {
 		conf.ReloadCommand = defaultReloadCommand
+	}
+
+	if conf.Prometheus.Path == "" {
+		conf.Prometheus.Path = defaultPrometheusPath
+	}
+
+	if conf.Prometheus.Port == 0 {
+		conf.Prometheus.Port = defaultPrometheusPort
 	}
 
 	if len(conf.Services) == 0 {

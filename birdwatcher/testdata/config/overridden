@@ -1,5 +1,9 @@
 configfile = "/etc/birdwatcher.conf"
 reloadcommand = "/sbin/birdc configure"
+[prometheus]
+enabled = true
+port = 1234
+path = "/something"
 
 [services]
   [services."foo"]

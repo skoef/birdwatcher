@@ -104,3 +104,13 @@ Each service under this section can have the following settings:
 | fail         | The amount of times the check command should fail before the service is considered to be down. Defaults to **1**                                                                                                                         |
 | rise         | The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**                                                                                                                        |
 | prefixes     | Array of prefixes, mixed IPv4 and IPv6. At least 1 prefix is **required** per service                                                                                                                                                    |
+
+## **[prometheus]**
+
+Configuration for the prometheus exporter
+
+| key     | description                                                                  |
+| ------- | ---------------------------------------------------------------------------- |
+| enabled | Boolean whether you want to export prometheus metrics. Defaults to **false** |
+| port    | Port to export prometheus metrics on. Defaults to **9091**                   |
+| path    | Path to the prometheus metrics. Defaults to **/metrics**                     |

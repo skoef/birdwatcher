@@ -3,12 +3,66 @@ package birdwatcher
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	serviceInfoMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "info",
+		Help:      "Services and their configuration",
+	}, []string{"service", "function_name", "command", "interval", "timeout", "rise", "fail"})
+
+	serviceCheckDuration = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "check_duration",
+		Help:      "Service check duration in milliseconds",
+	}, []string{"service"})
+
+	serviceStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "state",
+		Help:      "Current health state per service",
+	}, []string{"service"})
+
+	serviceTransitionMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "transition_total",
+		Help:      "Number of transitions per service",
+	}, []string{"service"})
+
+	serviceSuccessMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "success_total",
+		Help:      "Number of successful probes per service",
+	}, []string{"service"})
+
+	serviceFailMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "fail_total",
+		Help:      "Number of failed probes per service",
+	}, []string{"service"})
+
+	serviceTimeoutMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "birdwatcher",
+		Subsystem: "service",
+		Name:      "timeout_total",
+		Help:      "Number of timed out probes per service",
+	}, []string{"service"})
 )
 
 // ServiceState represents the state the service is considered to be in
@@ -53,6 +107,17 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 		"command": s.Command,
 	})
 
+	// set service info metric
+	serviceInfoMetric.With(prometheus.Labels{
+		"service":       s.name,
+		"function_name": s.FunctionName,
+		"command":       s.Command,
+		"interval":      fmt.Sprint(s.Interval),
+		"timeout":       s.Timeout.String(),
+		"rise":          fmt.Sprint(s.Rise),
+		"fail":          fmt.Sprint(s.Fail),
+	}).Set(1.0)
+
 	for {
 		select {
 		case <-s.stopped:
@@ -61,8 +126,11 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 			return
 
 		case <-ticker.C:
+			beginCheck := time.Now()
 			// perform check synchronously to prevent checks to queue
 			err = s.performCheck()
+			// keep track of the time it took for the check to perform
+			serviceCheckDuration.WithLabelValues(s.name).Set(float64(time.Since(beginCheck)))
 
 			// based on the check result, decide if we're going up or down
 			//
@@ -70,6 +138,9 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 			if err == nil {
 				// reset downCounter
 				downCounter = 0
+
+				// update success metric
+				serviceSuccessMetric.WithLabelValues(s.name).Inc()
 
 				sLog.Debug("check command exited without error")
 
@@ -80,7 +151,13 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 							"successes": upCounter,
 						}).Info("service transitioning to up")
 
+						// mark current state as up
 						s.state = ServiceStateUp
+
+						// update state metric
+						serviceStateMetric.WithLabelValues(s.name).Set(1)
+						// update transition metric
+						serviceTransitionMetric.WithLabelValues(s.name).Inc()
 
 						// send action on channel
 						*action <- s.getAction()
@@ -99,7 +176,15 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 				// reset upcounter
 				upCounter = 0
 
-				sLog.Debug("check command failed or timed out")
+				// update success metric
+				serviceFailMetric.WithLabelValues(s.name).Inc()
+				// if this was a timeout, increment that counter as well
+				if errors.Is(err, context.DeadlineExceeded) {
+					serviceTimeoutMetric.WithLabelValues(s.name).Inc()
+					sLog.Debug("check command timed out")
+				} else {
+					sLog.Debug("check command failed")
+				}
 
 				// are we down long enough to consider service down
 				if downCounter >= (s.Fail - 1) {
@@ -108,7 +193,13 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 							"failures": downCounter,
 						}).Info("service transitioning to down")
 
+						// mark current state as down
 						s.state = ServiceStateDown
+
+						// update state metric
+						serviceStateMetric.WithLabelValues(s.name).Set(0)
+						// update transition metric
+						serviceTransitionMetric.WithLabelValues(s.name).Inc()
 
 						// send action on channel
 						*action <- s.getAction()

@@ -4,6 +4,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,33 +15,46 @@ func TestHealthCheck_addPrefix(t *testing.T) {
 	// adding a prefix should initialise the prefixcollection
 	// and add the prefix under the right prefixset
 	_, prefix, _ := net.ParseCIDR("1.2.3.0/24")
-	hc.addPrefix("foo", *prefix)
+	hc.addPrefix(&ServiceCheck{name: "svc1", FunctionName: "foo"}, *prefix)
 	assert.Equal(t, 1, len(hc.prefixes))
 	assert.Equal(t, *prefix, hc.prefixes["foo"].prefixes[0])
 
+	assert.Equal(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
+
 	_, prefix, _ = net.ParseCIDR("2.3.4.0/24")
-	hc.addPrefix("bar", *prefix)
+	hc.addPrefix(&ServiceCheck{name: "svc2", FunctionName: "bar"}, *prefix)
 	assert.Equal(t, 2, len(hc.prefixes))
 	assert.Equal(t, *prefix, hc.prefixes["bar"].prefixes[0])
+
+	assert.Equal(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc2", "2.3.4.0/24")))
 }
 
 func TestHealthCheck_removePrefix(t *testing.T) {
 	hc := HealthCheck{}
 	assert.Nil(t, hc.prefixes)
 	_, prefix, _ := net.ParseCIDR("1.2.3.0/24")
-	hc.addPrefix("foo", *prefix)
+
+	svc1 := &ServiceCheck{name: "svc1", FunctionName: "foo"}
+	hc.addPrefix(svc1, *prefix)
 	assert.Equal(t, 1, len(hc.prefixes))
 	assert.Equal(t, 1, len(hc.prefixes["foo"].prefixes))
 
+	assert.Equal(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
+
 	// this should initialise the prefixset but won't remove any prefixes
-	hc.removePrefix("bar", *prefix)
+	svc2 := &ServiceCheck{name: "svc2", FunctionName: "bar"}
+	hc.removePrefix(svc2, *prefix)
 	assert.Equal(t, 2, len(hc.prefixes))
 	assert.Equal(t, 1, len(hc.prefixes["foo"].prefixes))
 	assert.Equal(t, 0, len(hc.prefixes["bar"].prefixes))
 
+	assert.Equal(t, 0.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc2", "1.2.3.0/24")))
+
 	// remove the prefix from the right prefixset
-	hc.removePrefix("foo", *prefix)
+	hc.removePrefix(svc1, *prefix)
 	assert.Equal(t, 0, len(hc.prefixes["foo"].prefixes))
+
+	assert.Equal(t, 0.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
 }
 
 func TestHealthCheckDidReloadBefore(t *testing.T) {
