@@ -2,12 +2,12 @@ package birdwatcher
 
 import (
 	"bytes"
+	// use embed for embedding the function template
+	_ "embed"
 	"net"
 	"text/template"
 
 	log "github.com/sirupsen/logrus"
-	// use embed for embedding the function template
-	_ "embed"
 )
 
 //go:embed templates/function.tpl
@@ -23,6 +23,7 @@ type PrefixCollection map[string]*PrefixSet
 type PrefixSet struct {
 	prefixes     []net.IPNet
 	functionName string
+	noReturnType bool
 }
 
 // NewPrefixSet returns a new prefixset with given function name
@@ -31,7 +32,7 @@ func NewPrefixSet(functionName string) *PrefixSet {
 }
 
 // Add adds a prefix to the PrefixSet if it wasn't already in it
-func (p *PrefixSet) Add(prefix net.IPNet) {
+func (p *PrefixSet) Add(prefix net.IPNet, noReturnType bool) {
 	pLog := log.WithFields(log.Fields{
 		"prefix": prefix,
 	})
@@ -49,6 +50,7 @@ func (p *PrefixSet) Add(prefix net.IPNet) {
 
 	// add prefix to the prefix set
 	p.prefixes = append(p.prefixes, prefix)
+	p.noReturnType = noReturnType
 }
 
 // Remove removes a prefix from the PrefixSet
@@ -81,9 +83,11 @@ func (p PrefixSet) Marshal() string {
 	tplBody := struct {
 		FunctionName string
 		Prefixes     []net.IPNet
+		NoReturnType bool
 	}{
 		FunctionName: p.functionName,
 		Prefixes:     p.prefixes,
+		NoReturnType: p.noReturnType,
 	}
 
 	// execute template and return output

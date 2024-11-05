@@ -221,7 +221,7 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 func (h *HealthCheck) addPrefix(svc *ServiceCheck, prefix net.IPNet) {
 	h.ensurePrefixSet(svc.FunctionName)
 
-	h.prefixes[svc.FunctionName].Add(prefix)
+	h.prefixes[svc.FunctionName].Add(prefix, svc.NoReturnType)
 	prefixStateMetric.WithLabelValues(svc.Name(), prefix.String()).Set(1.0)
 }
 

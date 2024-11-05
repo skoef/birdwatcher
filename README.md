@@ -4,8 +4,6 @@
 
 > healthchecker for [BIRD](https://bird.network.cz/)-anycasted services
 
-:warning: **NOTE**: this version of birdwatcher is designed to work with BIRD version 2 and up. If you want to use birdwatcher with BIRD 1.x, refer to the `bird1` branch.
-
 This project is heavily influenced by [anycast-healthchecker](https://github.com/unixsurfer/anycast_healthchecker). If you want to know more about use cases of birdwatcher, please read their excellent documention about anycasted services and how a healthchecker can contribute to a more stable service availability.
 
 In a nutshell: birdwatcher periodically checks a specific service and tells BIRD which prefixes to announce or to withdraw when the service appears to be up or down respectively.
@@ -29,18 +27,36 @@ For example: `10` should become `"10s"` in your config files.
 This simple example configures a single service, runs `haproxy_check.sh` every second and manages 2 prefixes based on the exit code of the script:
 
 ```toml
+# For BIRD v2.14 and up
 [services]
   [services."foo"]
   command = "/usr/bin/haproxy_check.sh"
   prefixes = ["192.168.0.0/24", "fc00::/7"]
 
+# For BIRD v2.13 and earlier (including v1)
+[services]
+  [services."foo"]
+    command = "/usr/bin/haproxy_check.sh"
+    prefixes = ["192.168.0.0/24", "fc00::/7"]
+    noReturnType = true
 ```
 
 Sample output in `/etc/bird/birdwatcher.conf` if `haproxy_check.sh` checks out would be:
 
 ```
+# For BIRD v2.14 and up
 # DO NOT EDIT MANUALLY
 function match_route() -> bool
+{
+	return net ~ [
+		192.168.0.0/24,
+		fc00::/7
+	];
+}
+
+# For BIRD v2.13 and earlier
+# DO NOT EDIT MANUALLY
+function match_route()
 {
 	return net ~ [
 		192.168.0.0/24,
@@ -52,10 +68,21 @@ function match_route() -> bool
 As soon as birdwatcher finds out haproxy is down, it will change the content in `/etc/bird/birdwatcher.conf` to:
 
 ```
+# For BIRD v2.14 and up
 # DO NOT EDIT MANUALLY
 function match_route() -> bool
 {
 	return false;
+}
+
+
+# For BIRD v2.13 and earlier
+function match_route()
+{
+	return net ~ [
+		192.168.0.0/24,
+		fc00::/7
+	];
 }
 ```
 
@@ -64,6 +91,7 @@ and reconfigures BIRD by given `reloadcommand`. Obviously, if you have multiple 
 Integration in BIRD is a matter of including `/etc/bird/birdwatcher.conf` (or whatever you configured at `configfile`) in the configuration for BIRD and use it in a protocol like this:
 
 ```
+# For BIRD v2
 protocol bgp my_bgp_proto {
   local as 12345;
   neighbor 1.2.3.4 as 23435;
@@ -77,6 +105,15 @@ protocol bgp my_bgp_proto {
     ...
     export where match_route();
   }
+}
+
+# For BIRD v1
+protocol bgp my_bgp_proto {
+  local as 12345;
+  neighbor 1.2.3.4 as 23435;
+  ...
+  export where match_route();
+  ...
 }
 ```
 
@@ -96,7 +133,7 @@ Configuration section for global options.
 Each service under this section can have the following settings:
 
 | key          | description                                                                                                                                                                                                                              |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | command      | Command that will be periodically run to check if the service should be considered up or down. The result is based on the exit code: a non-zero exit codes makes birdwatcher decide the service is down, otherwise it's up. **Required** |
 | functionname | Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.                                                                   |
 | interval     | The interval in seconds at which birdwatcher will check the service. Defaults to **1**                                                                                                                                                   |
@@ -104,6 +141,7 @@ Each service under this section can have the following settings:
 | fail         | The amount of times the check command should fail before the service is considered to be down. Defaults to **1**                                                                                                                         |
 | rise         | The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**                                                                                                                        |
 | prefixes     | Array of prefixes, mixed IPv4 and IPv6. At least 1 prefix is **required** per service                                                                                                                                                    |
+| noReturnType | Set to false for BIRD v2.13 or earlier. Defaults to **true**                                                                                                                                                                             |
 
 ## **[prometheus]**
 

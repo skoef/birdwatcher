@@ -90,6 +90,7 @@ type ServiceCheck struct {
 	state              ServiceState
 	disablePrefixCheck bool
 	stopped            chan interface{}
+	NoReturnType       bool
 }
 
 // Start starts the process of health checking its service and sends actions to
@@ -103,8 +104,9 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 	downCounter := 0
 
 	sLog := log.WithFields(log.Fields{
-		"service": s.name,
-		"command": s.Command,
+		"service":        s.name,
+		"command":        s.Command,
+		"no_return_type": s.NoReturnType,
 	})
 
 	// set service info metric

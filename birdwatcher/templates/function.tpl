@@ -1,4 +1,4 @@
-function {{.FunctionName}}() -> bool
+function {{.FunctionName}}(){{- if not .NoReturnType }} -> bool {{- end }}
 {
 {{- with .Prefixes}}
 	return net ~ [
