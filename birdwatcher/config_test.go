@@ -130,6 +130,8 @@ func TestConfig(t *testing.T) {
 
 		assert.Equal(t, "/etc/birdwatcher.conf", testConf.ConfigFile)
 		assert.Equal(t, "/sbin/birdc configure", testConf.ReloadCommand)
+		assert.True(t, testConf.CompatBird213)
+
 		assert.True(t, testConf.Prometheus.Enabled)
 		assert.Equal(t, 1234, testConf.Prometheus.Port)
 		assert.Equal(t, "/something", testConf.Prometheus.Path)

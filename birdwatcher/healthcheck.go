@@ -49,7 +49,7 @@ func NewHealthCheck(c Config) HealthCheck {
 
 // Start starts the process of health checking the services and handling
 // Actions that come from them
-func (h *HealthCheck) Start(services []*ServiceCheck, ready chan bool, status *chan string) {
+func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status *chan string) {
 	// copy reference to services
 	h.services = services
 	// create channel for service check to push there events on
@@ -157,7 +157,7 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	})
 
 	// update bird config
-	err := updateBirdConfig(config.ConfigFile, prefixes)
+	err := updateBirdConfig(config, prefixes)
 	if err != nil {
 		// if config did not change, we should still reload if we don't know the
 		// state of BIRD
