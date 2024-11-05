@@ -127,23 +127,6 @@ output:
 
 # All available settings of specific linters.
 linters-settings:
-
-  ### Custom linters
-  custom:
-    zaploglabel:
-      type: "module"
-      description: "Reports zap log labels that are not formatted using snake case"
-      settings:
-        special_words:
-          - id
-          - uid
-          - url
-          - evse
-          - emsp
-          - ocpp
-          - cpo
-          - ocpi
-
   ### Default linters
   errcheck:
     # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
@@ -1711,8 +1694,6 @@ linters:
   # Enable specific linter
   # https://golangci-lint.run/usage/linters/#enabled-by-default
   enable:
-    ### Custom linters
-    - zaploglabel
     ### Default linters
     - errcheck # Errcheck is a program for checking for unchecked errors in Go code.
     - gosimple # Linter for Go source code that specializes in simplifying code.
