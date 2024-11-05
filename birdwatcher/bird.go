@@ -3,20 +3,18 @@ package birdwatcher
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"os"
 )
 
-var (
-	errConfigIdentical = errors.New("configuration file is identical")
-)
+var errConfigIdentical = errors.New("configuration file is identical")
 
 func updateBirdConfig(filename string, prefixes PrefixCollection) error {
 	// write config to temp file
-	tmpFilename := fmt.Sprintf("%s.tmp", filename)
+	tmpFilename := filename + ".tmp"
 	// make sure we don't keep tmp file around when something goes wrong
 	defer func(x string) {
 		if _, err := os.Stat(x); !os.IsNotExist(err) {
+			//nolint:errcheck,gosec // it's just a temp file anyway
 			os.Remove(tmpFilename)
 		}
 	}(tmpFilename)

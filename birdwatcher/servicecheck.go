@@ -3,9 +3,9 @@ package birdwatcher
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,27 +78,31 @@ const (
 // ServiceCheck is the struct for holding all information and state about a
 // specific service health check
 type ServiceCheck struct {
-	name               string
-	FunctionName       string
-	Command            string
-	Interval           int
-	Timeout            time.Duration
-	Fail               int
-	Rise               int
-	Prefixes           []string
+	name         string
+	FunctionName string
+	Command      string
+	Interval     int
+	Timeout      time.Duration
+	Fail         int
+	Rise         int
+	Prefixes     []string
+	//nolint:revive // these prefixes are converted into net.IPNet
 	prefixes           []net.IPNet
 	state              ServiceState
 	disablePrefixCheck bool
-	stopped            chan interface{}
+	stopped            chan any
 }
 
 // Start starts the process of health checking its service and sends actions to
 // the action channel when service state changes
+//
+//nolint:funlen // we should refactor this a bit
 func (s *ServiceCheck) Start(action *chan *Action) {
-	s.stopped = make(chan interface{})
+	s.stopped = make(chan any)
 	ticker := time.NewTicker(time.Second * time.Duration(s.Interval))
 
 	var err error
+
 	upCounter := 0
 	downCounter := 0
 
@@ -112,10 +116,10 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 		"service":       s.name,
 		"function_name": s.FunctionName,
 		"command":       s.Command,
-		"interval":      fmt.Sprint(s.Interval),
+		"interval":      strconv.Itoa(s.Interval),
 		"timeout":       s.Timeout.String(),
-		"rise":          fmt.Sprint(s.Rise),
-		"fail":          fmt.Sprint(s.Fail),
+		"rise":          strconv.Itoa(s.Rise),
+		"fail":          strconv.Itoa(s.Fail),
 	}).Set(1.0)
 
 	for {
@@ -162,17 +166,17 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 						// send action on channel
 						*action <- s.getAction()
 					}
-					// or are we still in the process of coming up
 				} else {
+					// or are we still in the process of coming up
 					upCounter++
 
 					sLog.WithFields(log.Fields{
 						"successes": upCounter,
 					}).Debug("service moving towards up")
 				}
-
-				// check gave negative result
 			} else {
+				// check gave negative result
+				//
 				// reset upcounter
 				upCounter = 0
 

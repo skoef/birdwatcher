@@ -21,19 +21,17 @@ const (
 	reloadTimeout = 10 * time.Second
 )
 
-var (
-	prefixStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "prefix",
-		Name:      "state",
-		Help:      "Current health state per prefix",
-	}, []string{"service", "prefix"})
-)
+var prefixStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: "birdwatcher",
+	Subsystem: "prefix",
+	Name:      "state",
+	Help:      "Current health state per prefix",
+}, []string{"service", "prefix"})
 
 // HealthCheck -- struct holding everything needed for the never-ending health
 // check loop
 type HealthCheck struct {
-	stopped        chan interface{}
+	stopped        chan any
 	actions        chan *Action
 	services       []*ServiceCheck
 	prefixes       PrefixCollection
@@ -57,7 +55,7 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan bool, status *c
 	// create channel for service check to push there events on
 	h.actions = make(chan *Action, actionsChannelSize)
 	// create a channel to signal we're stopping
-	h.stopped = make(chan interface{})
+	h.stopped = make(chan any)
 
 	// start each service and keep a pointer to the services
 	// we'll need this later to stop them
@@ -127,6 +125,7 @@ func (h *HealthCheck) handleAction(action *Action, status *chan string) {
 // are configured up
 func (h *HealthCheck) statusUpdate() string {
 	servicesDown := []string{}
+
 	for _, s := range h.services {
 		if s.IsUp() {
 			continue
@@ -138,6 +137,7 @@ func (h *HealthCheck) statusUpdate() string {
 	allServices := len(h.services)
 
 	var status string
+
 	switch {
 	case len(servicesDown) == 0:
 		status = fmt.Sprintf("all %d service(s) up", allServices)
@@ -169,9 +169,8 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 			}
 
 			cLog.Info("config did not change, but reloading anyway")
-
-			// break on any other error
 		} else {
+			// break on any other error
 			cLog.WithError(err).Warning("error updating configuration")
 
 			return err

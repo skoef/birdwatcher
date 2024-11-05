@@ -1,58 +1,1987 @@
-run:
-  timeout: 10m
+# This file contains all available configuration options
+# with their default values (in comments).
 
-issues:
-  max-same-issues: 100
+# Options for analysis running.
+run:
+  # Number of operating system threads (`GOMAXPROCS`) that can execute golangci-lint simultaneously.
+  # If it is explicitly set to 0 (i.e. not the default) then golangci-lint will automatically set the value to match Linux container CPU quota.
+  # Default: the number of logical CPUs in the machine
+  # concurrency: 4
+
+  # Timeout for analysis, e.g. 30s, 5m.
+  # Default: 1m
+  timeout: 5m
+
+  # Exit code when at least one issue was found.
+  # Default: 1
+  issues-exit-code: 1
+
+  # Include test files or not.
+  # Default: true
+  tests: true
+
+  # List of build tags, all linters use it.
+  # Default: []
+  # build-tags:
+
+  # If set, we pass it to "go list -mod={option}". From "go help modules":
+  # If invoked with -mod=readonly, the go command is disallowed from the implicit
+  # automatic updating of go.mod described above. Instead, it fails when any changes
+  # to go.mod are needed. This setting is most useful to check that go.mod does
+  # not need updates, such as in a continuous integration and testing system.
+  # If invoked with -mod=vendor, the go command assumes that the vendor
+  # directory holds the correct copies of dependencies and ignores
+  # the dependency descriptions in go.mod.
+  #
+  # Allowed values: readonly|vendor|mod
+  # Default: ""
+  modules-download-mode: ""
+
+  # Allow multiple parallel golangci-lint instances running.
+  # If false, golangci-lint acquires file lock on start.
+  # Default: false
+  allow-parallel-runners: true
+
+  # Allow multiple golangci-lint instances running, but serialize them around a lock.
+  # If false, golangci-lint exits with an error if it fails to acquire file lock on start.
+  # Default: false
+  allow-serial-runners: false
+
+  # Define the Go version limit.
+  # Mainly related to generics support since go1.18.
+  # Default: use Go version from the go.mod file, fallback on the env var `GOVERSION`, fallback on 1.17
+  # go: "1.21"
+
+# output configuration options
+output:
+  # The formats used to render issues.
+  # Formats:
+  # - `colored-line-number`
+  # - `line-number`
+  # - `json`
+  # - `colored-tab`
+  # - `tab`
+  # - `html`
+  # - `checkstyle`
+  # - `code-climate`
+  # - `junit-xml`
+  # - `github-actions`
+  # - `teamcity`
+  # - `sarif`
+  # Output path can be either `stdout`, `stderr` or path to the file to write to.
+  #
+  # For the CLI flag (`--out-format`), multiple formats can be specified by separating them by comma.
+  # The output can be specified for each of them by separating format name and path by colon symbol.
+  # Example: "--out-format=checkstyle:report.xml,json:stdout,colored-line-number"
+  # The CLI flag (`--out-format`) override the configuration file.
+  #
+  # Default:
+  #   formats:
+  #     - format: colored-line-number
+  #       path: stdout
+  formats:
+    - format: colored-line-number
+      path: stdout
+
+  # Print lines of code with issue.
+  # Default: true
+  print-issued-lines: true
+
+  # Print linter name in the end of issue text.
+  # Default: true
+  print-linter-name: true
+
+  # Make issues output unique by line.
+  # Default: true
+  uniq-by-line: true
+
+  # Add a prefix to the output file references.
+  # Default: ""
+  path-prefix: ""
+
+  # Sort results by the order defined in `sort-order`.
+  # Default: false
+  sort-results: true
+
+  # Order to use when sorting results.
+  # Require `sort-results` to `true`.
+  # Possible values: `file`, `linter`, and `severity`.
+  #
+  # If the severity values are inside the following list, they are ordered in this order:
+  #   1. error
+  #   2. warning
+  #   3. high
+  #   4. medium
+  #   5. low
+  # Either they are sorted alphabetically.
+  #
+  # Default: ["file"]
+  sort-order:
+    - linter
+    - severity
+    - file # filepath, line, and column.
+
+  # Show statistics per linter.
+  # Default: false
+  show-stats: false
+
+# All available settings of specific linters.
+linters-settings:
+
+  ### Custom linters
+  custom:
+    zaploglabel:
+      type: "module"
+      description: "Reports zap log labels that are not formatted using snake case"
+      settings:
+        special_words:
+          - id
+          - uid
+          - url
+          - evse
+          - emsp
+          - ocpp
+          - cpo
+          - ocpi
+
+  ### Default linters
+  errcheck:
+    # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+    # Such cases aren't reported by default.
+    # Default: false
+    check-type-assertions: true
+
+    # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`.
+    # Such cases aren't reported by default.
+    # Default: false
+    check-blank: false
+
+    # To disable the errcheck built-in exclude list.
+    # See `-excludeonly` option in https://github.com/kisielk/errcheck#excluding-functions for details.
+    # Default: false
+    disable-default-exclusions: false
+
+    # List of functions to exclude from checking, where each entry is a single function to exclude.
+    # See https://github.com/kisielk/errcheck#excluding-functions for details.
+    exclude-functions:
+      - io/ioutil.ReadFile
+      - io.Copy(*bytes.Buffer)
+      - io.Copy(os.Stdout)
+      - crypto/rand.Read
+
+  gosimple:
+    # Sxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: ["all"]
+
+  govet:
+    # Disable all analyzers.
+    # Default: false
+    disable-all: true
+    # Enable analyzers by name.
+    # (in addition to default:
+    #   appends, asmdecl, assign, atomic, bools, buildtag, cgocall, composites, copylocks, defers, directive, errorsas,
+    #   framepointer, httpresponse, ifaceassert, loopclosure, lostcancel, nilfunc, printf, shift, sigchanyzer, slog,
+    #   stdmethods, stringintconv, structtag, testinggoroutine, tests, timeformat, unmarshal, unreachable, unsafeptr,
+    #   unusedresult
+    # ).
+    # Run `GL_DEBUG=govet golangci-lint run --enable=govet` to see default, all available analyzers, and enabled analyzers.
+    # Default: []
+    enable:
+      - appends
+      - asmdecl
+      - assign
+      - atomic
+      - atomicalign
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - defers
+      - directive
+      - errorsas
+      - findcall
+      - framepointer
+      - httpresponse
+      - ifaceassert
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - nilness
+      - printf
+      - reflectvaluecompare
+      - shadow
+      - shift
+      - sigchanyzer
+      - slog
+      - sortslice
+      - stdmethods
+      - stringintconv
+      - structtag
+      - testinggoroutine
+      - tests
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
+      - unusedwrite
+
+    # Enable all analyzers.
+    # Default: false
+    enable-all: false
+    # Disable analyzers by name.
+    # (in addition to default
+    #   atomicalign, deepequalerrors, fieldalignment, findcall, nilness, reflectvaluecompare, shadow, sortslice,
+    #   timeformat, unusedwrite
+    # ).
+    # Run `GL_DEBUG=govet golangci-lint run --enable=govet` to see default, all available analyzers, and enabled analyzers.
+    # Default: []
+    disable:
+
+    # Settings per analyzer.
+    settings:
+      # Analyzer name, run `go tool vet help` to see all analyzers.
+      printf:
+        # Comma-separated list of print function names to check (in addition to default, see `go tool vet help printf`).
+        # Default: []
+        funcs:
+      shadow:
+        # Whether to be strict about shadowing; can be noisy.
+        # Default: false
+        strict: false
+      unusedresult:
+        # Comma-separated list of functions whose results must be used
+        # (in addition to default:
+        #   context.WithCancel, context.WithDeadline, context.WithTimeout, context.WithValue, errors.New, fmt.Errorf,
+        #   fmt.Sprint, fmt.Sprintf, sort.Reverse
+        # ).
+        # Default: []
+        funcs:
+        # Comma-separated list of names of methods of type func() string whose results must be used
+        # (in addition to default Error,String)
+        # Default: []
+        stringmethods:
+
+  staticcheck:
+    # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: ["all"]
+
+  unused:
+    # Mark all struct fields that have been written to as used.
+    # Default: true
+    field-writes-are-uses: true
+    # Treat IncDec statement (e.g. `i++` or `i--`) as both read and write operation instead of just write.
+    # Default: false
+    post-statements-are-reads: false
+    # Mark all exported fields as used.
+    # Default: true
+    exported-fields-are-used: true
+    # Mark all function parameters as used.
+    # Default: true
+    parameters-are-used: true
+    # Mark all local variables as used.
+    # Default: true
+    local-variables-are-used: true
+    # Mark all identifiers inside generated files as used.
+    # Default: true
+    generated-is-used: true
+
+  ### Additional linters
+  asasalint:
+    # To specify a set of function names to exclude.
+    # The values are merged with the builtin exclusions.
+    # The builtin exclusions can be disabled by setting `use-builtin-exclusions` to `false`.
+    # Default: ["^(fmt|log|logger|t|)\.(Print|Fprint|Sprint|Fatal|Panic|Error|Warn|Warning|Info|Debug|Log)(|f|ln)$"]
+    # exclude:
+    # To enable/disable the asasalint builtin exclusions of function names.
+    # See the default value of `exclude` to get the builtin exclusions.
+    # Default: true
+    use-builtin-exclusions: true
+    # Ignore *_test.go files.
+    # Default: false
+    ignore-test: false
+
+  bidichk:
+    # The following configurations check for all mentioned invisible unicode runes.
+    # All runes are enabled by default.
+    left-to-right-embedding: true
+    right-to-left-embedding: true
+    pop-directional-formatting: true
+    left-to-right-override: true
+    right-to-left-override: true
+    left-to-right-isolate: true
+    right-to-left-isolate: true
+    first-strong-isolate: true
+    pop-directional-isolate: true
+
+  copyloopvar:
+    # Check all assigning the loop variable to another variable.
+    # Default: false
+    check-alias: true
+
+  dogsled:
+    # Checks assignments with too many blank identifiers.
+    # Default: 2
+    max-blank-identifiers: 3
+
+  dupword:
+    # Keywords for detecting duplicate words.
+    # If this list is not empty, only the words defined in this list will be detected.
+    # Default: []
+    keywords:
+      - "the"
+      - "and"
+      - "a"
+    # Keywords used to ignore detection.
+    # Default: []
+    ignore:
+
+  errchkjson:
+    # With check-error-free-encoding set to true, errchkjson does warn about errors
+    # from json encoding functions that are safe to be ignored,
+    # because they are not possible to happen.
+    #
+    # if check-error-free-encoding is set to true and errcheck linter is enabled,
+    # it is recommended to add the following exceptions to prevent from false positives:
+    #
+    #     linters-settings:
+    #       errcheck:
+    #         exclude-functions:
+    #           - encoding/json.Marshal
+    #           - encoding/json.MarshalIndent
+    #
+    # Default: false
+    check-error-free-encoding: false
+
+    # Issue on struct encoding that doesn't have exported fields.
+    # Default: false
+    report-no-exported: false
+
+  errorlint:
+    # Check whether fmt.Errorf uses the %w verb for formatting errors.
+    # See the https://github.com/polyfloyd/go-errorlint for caveats.
+    # Default: true
+    errorf: true
+    # Permit more than 1 %w verb, valid per Go 1.20 (Requires errorf:true)
+    # Default: true
+    errorf-multi: true
+    # Check for plain type assertions and type switches.
+    # Default: true
+    asserts: true
+    # Check for plain error comparisons.
+    # Default: true
+    comparison: true
+    # Allowed errors.
+    # Default: []
+    allowed-errors:
+    # Allowed error "wildcards".
+    # Default: []
+    allowed-errors-wildcard:
+
+  exhaustive:
+    # Program elements to check for exhaustiveness.
+    # Default: [ switch ]
+    check:
+      - switch
+      - map
+    # Check switch statements in generated files also.
+    # Default: false
+    check-generated: false
+    # Presence of "default" case in switch statements satisfies exhaustiveness,
+    # even if all enum members are not listed.
+    # Default: false
+    default-signifies-exhaustive: true
+    # Enum members matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-members: ""
+    # Enum types matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-types: ""
+    # Consider enums only in package scopes, not in inner scopes.
+    # Default: false
+    package-scope-only: false
+    # Only run exhaustive check on switches with "//exhaustive:enforce" comment.
+    # Default: false
+    explicit-exhaustive-switch: false
+    # Only run exhaustive check on map literals with "//exhaustive:enforce" comment.
+    # Default: false
+    explicit-exhaustive-map: false
+    # Switch statement requires default case even if exhaustive.
+    # Default: false
+    default-case-required: false
+
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 80
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 60
+    # Ignore comments when counting lines.
+    # Default false
+    ignore-comments: true
+
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # The default order of sections is `standard > default > custom > blank > dot > alias > localmodule`,
+    # If `custom-order` is `true`, it follows the order of `sections` option.
+    # Default: ["standard", "default"]
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(gitlab.com/maxem) # Custom section: groups all imports with the specified Prefix.
+      - localmodule # Local module section: contains all local packages. This section is not present unless explicitly enabled.
+    # Skip generated files.
+    # Default: true
+    skip-generated: true
+    # Enable custom order of sections.
+    # If `true`, make the section order the same as the order of `sections`.
+    # Default: false
+    custom-order: true
+    # Drops lexical ordering for custom sections.
+    # Default: false
+    no-lex-order: false
+
+  gocognit:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 30
+
+  goconst:
+    # Minimal length of string constant.
+    # Default: 3
+    min-len: 2
+    # Minimum occurrences of constant string count to trigger issue.
+    # Default: 3
+    min-occurrences: 3
+    # Ignore test files.
+    # Default: false
+    ignore-tests: true
+    # Look for existing constants matching the values.
+    # Default: true
+    match-constant: true
+    # Search also for duplicated numbers.
+    # Default: false
+    numbers: false
+    # Minimum value, only works with goconst.numbers
+    # Default: 3
+    min: 3
+    # Maximum value, only works with goconst.numbers
+    # Default: 3
+    max: 3
+    # Ignore when constant is not used as function argument.
+    # Default: true
+    ignore-calls: true
+    # Exclude strings matching the given regular expression.
+    # Default: ""
+    ignore-strings: "%w"
+
+  gocritic:
+    # Disable all checks.
+    # Default: false
+    disable-all: true
+    # Which checks should be enabled in addition to default checks; can't be combined with 'disabled-checks'.
+    # By default, list of stable checks is used (https://go-critic.github.io/overview#checks-overview):
+    #   appendAssign, argOrder, assignOp, badCall, badCond, captLocal, caseOrder, codegenComment, commentFormatting,
+    #   defaultCaseOrder, deprecatedComment, dupArg, dupBranchBody, dupCase, dupSubExpr, elseif, exitAfterDefer,
+    #   flagDeref, flagName, ifElseChain, mapKey, newDeref, offBy1, regexpMust, singleCaseSwitch, sloppyLen,
+    #   sloppyTypeAssert, switchTrue, typeSwitchVar, underef, unlambda, unslice, valSwap, wrapperFunc
+    # To see which checks are enabled run `GL_DEBUG=gocritic golangci-lint run --enable=gocritic`.
+    enabled-checks:
+      - appendAssign
+      - appendCombine
+      - argOrder
+      - assignOp
+      - badCall
+      - badCond
+      - badLock
+      - badRegexp
+      - badSorting
+      - badSyncOnceFunc
+      - boolExprSimplify
+      - builtinShadow
+      - builtinShadowDecl
+      - captLocal
+      - caseOrder
+      - codegenComment
+      - commentFormatting
+      - commentedOutCode
+      - commentedOutImport
+      - defaultCaseOrder
+      - deferInLoop
+      - deferUnlambda
+      - deprecatedComment
+      - dupArg
+      - dupBranchBody
+      - dupCase
+      - dupImport
+      - dupSubExpr
+      - dynamicFmtString
+      - elseif
+      - emptyDecl
+      - emptyFallthrough
+      - emptyStringTest
+      - equalFold
+      - evalOrder
+      - exitAfterDefer
+      - exposedSyncMutex
+      - externalErrorReassign
+      - filepathJoin
+      - flagDeref
+      - flagName
+      - hexLiteral
+      - httpNoBody
+      - hugeParam
+      - ifElseChain
+      - importShadow
+      - indexAlloc
+      - initClause
+      - mapKey
+      - methodExprCall
+      - nestingReduce
+      - nilValReturn
+      - octalLiteral
+      - offBy1
+      - paramTypeCombine
+      - preferDecodeRune
+      - preferFilepathJoin
+      - preferFprint
+      - preferStringWriter
+      - preferWriteByte
+      - rangeExprCopy
+      - rangeValCopy
+      - redundantSprint
+      - regexpMust
+      - regexpPattern
+      - regexpSimplify
+      - returnAfterHttpError
+      - singleCaseSwitch
+      - sliceClear
+      - sloppyLen
+      - sloppyReassign
+      - sloppyTypeAssert
+      - sortSlice
+      - sprintfQuotedString
+      - sqlQuery
+      - stringConcatSimplify
+      - stringXbytes
+      - stringsCompare
+      - switchTrue
+      - syncMapLoadAndDelete
+      - timeExprSimplify
+      - todoCommentWithoutDetail
+      - tooManyResultsChecker
+      - truncateCmp
+      - typeAssertChain
+      - typeDefFirst
+      - typeSwitchVar
+      - typeUnparen
+      - uncheckedInlineErr
+      - underef
+      - unlabelStmt
+      - unlambda
+      - unnecessaryBlock
+      - unnecessaryDefer
+      - unslice
+      - valSwap
+      - weakCond
+      - wrapperFunc
+      - yodaStyleExpr
+
+    # Enable all checks.
+    # Default: false
+    enable-all: false
+    # Which checks should be disabled; can't be combined with 'enabled-checks'.
+    # Default: []
+    disabled-checks:
+
+    # Enable multiple checks by tags in addition to default checks.
+    # Run `GL_DEBUG=gocritic golangci-lint run --enable=gocritic` to see all tags and checks.
+    # See https://github.com/go-critic/go-critic#usage -> section "Tags".
+    # Default: []
+    enabled-tags:
+    disabled-tags:
+
+    # Settings passed to gocritic.
+    # The settings key is the name of a supported gocritic checker.
+    # The list of supported checkers can be find in https://go-critic.github.io/overview.
+    settings:
+      # Must be valid enabled check name.
+      captLocal:
+        # Whether to restrict checker to params only.
+        # Default: true
+        paramsOnly: true
+      commentedOutCode:
+        # Min length of the comment that triggers a warning.
+        # Default: 15
+        minLength: 15
+      elseif:
+        # Whether to skip balanced if-else pairs.
+        # Default: true
+        skipBalanced: true
+      hugeParam:
+        # Size in bytes that makes the warning trigger.
+        # Default: 80
+        sizeThreshold: 512
+      ifElseChain:
+        # Min number of if-else blocks that makes the warning trigger.
+        # Default: 2
+        minThreshold: 2
+      nestingReduce:
+        # Min number of statements inside a branch to trigger a warning.
+        # Default: 5
+        bodyWidth: 5
+      rangeExprCopy:
+        # Size in bytes that makes the warning trigger.
+        # Default: 512
+        sizeThreshold: 512
+        # Whether to check test functions
+        # Default: true
+        skipTestFuncs: true
+      rangeValCopy:
+        # Size in bytes that makes the warning trigger.
+        # Default: 128
+        sizeThreshold: 512
+        # Whether to check test functions.
+        # Default: true
+        skipTestFuncs: true
+      tooManyResultsChecker:
+        # Maximum number of results.
+        # Default: 5
+        maxResults: 4
+      truncateCmp:
+        # Whether to skip int/uint/uintptr types.
+        # Default: true
+        skipArchDependent: true
+      underef:
+        # Whether to skip (*x).method() calls where x is a pointer receiver.
+        # Default: true
+        skipRecvDeref: true
+
+  godox:
+    # Report any comments starting with keywords, this is useful for TODO or FIXME comments that
+    # might be left in the code accidentally and should be resolved before merging.
+    # Default: ["TODO", "BUG", "FIXME"]
+    keywords:
+      - TODO
+      - BUG
+      - FIXME
+
+  gofmt:
+    # Simplify code: gofmt with `-s` option.
+    # Default: true
+    simplify: true
+    # Apply the rewrite rules to the source before reformatting.
+    # https://pkg.go.dev/cmd/gofmt
+    # Default: []
+    rewrite-rules:
+
+  gofumpt:
+    # Module path which contains the source code being formatted.
+    # Default: ""
+    module-path: ""
+
+    # Choose whether to use the extra rules.
+    # Default: false
+    extra-rules: false
+
+  gosec:
+    # To select a subset of rules to run.
+    # Available rules: https://github.com/securego/gosec#available-rules
+    # Default: [] - means include all rules
+    includes:
+      - G101 # Look for hard coded credentials
+      - G102 # Bind to all interfaces
+      - G103 # Audit the use of unsafe block
+      - G104 # Audit errors not checked
+      - G106 # Audit the use of ssh.InsecureIgnoreHostKey
+      - G107 # Url provided to HTTP request as taint input
+      - G108 # Profiling endpoint automatically exposed on /debug/pprof
+      - G109 # Potential Integer overflow made by strconv.Atoi result conversion to int16/32
+      - G110 # Potential DoS vulnerability via decompression bomb
+      - G111 # Potential directory traversal
+      - G112 # Potential slowloris attack
+      - G113 # Usage of Rat.SetString in math/big with an overflow (CVE-2022-23772)
+      - G114 # Use of net/http serve function that has no support for setting timeouts
+      - G201 # SQL query construction using format string
+      - G202 # SQL query construction using string concatenation
+      - G203 # Use of unescaped data in HTML templates
+      - G301 # Poor file permissions used when creating a directory
+      - G302 # Poor file permissions used with chmod
+      - G303 # Creating tempfile using a predictable path
+      - G305 # File traversal when extracting zip/tar archive
+      - G306 # Poor file permissions used when writing to a new file
+      - G401 # Detect the usage of DES, RC4, MD5 or SHA1
+      - G402 # Look for bad TLS connection settings
+      - G403 # Ensure minimum RSA key length of 2048 bits
+      - G404 # Insecure random number source (rand)
+      - G405 # Detect the usage of DES or RC4
+      - G406 # Detect the usage of MD4 or RIPEMD160
+      - G501 # Import blocklist: crypto/md5
+      - G502 # Import blocklist: crypto/des
+      - G503 # Import blocklist: crypto/rc4
+      - G504 # Import blocklist: net/http/cgi
+      - G505 # Import blocklist: crypto/sha1
+      - G506 # Import blocklist: golang.org/x/crypto/md4
+      - G507 # Import blocklist: golang.org/x/crypto/ripemd160
+      - G601 # Implicit memory aliasing of items from a range statement
+      - G602 # Slice access out of bounds
+
+    # To specify a set of rules to explicitly exclude.
+    # Available rules: https://github.com/securego/gosec#available-rules
+    # Default: []
+    excludes:
+      - G115 # Potential integer overflow when converting between integer types
+      - G204 # Audit use of command execution
+      - G304 # File path provided as taint input
+      - G307 # [RETIRED] Poor file permissions used when creating a file with os.Create
+
+
+    # Exclude generated files
+    # Default: false
+    exclude-generated: true
+
+    # Filter out the issues with a lower severity than the given value.
+    # Valid options are: low, medium, high.
+    # Default: low
+    severity: low
+
+    # Filter out the issues with a lower confidence than the given value.
+    # Valid options are: low, medium, high.
+    # Default: low
+    confidence: low
+
+    # Concurrency value.
+    # Default: the number of logical CPUs usable by the current process.
+    # concurrency:
+
+    # To specify the configuration of rules.
+    config:
+      # Globals are applicable to all rules.
+      global:
+        # If true, ignore #nosec in comments (and an alternative as well).
+        # Default: false
+        nosec: false
+        # Add an alternative comment prefix to #nosec (both will work at the same time).
+        # Default: ""
+        "#nosec": ""
+        # Define whether nosec issues are counted as finding or not.
+        # Default: false
+        show-ignored: false
+        # Audit mode enables addition checks that for normal code analysis might be too nosy.
+        # Default: false
+        audit: false
+      G101:
+        # Regexp pattern for variables and constants to find.
+        # Default: "(?i)passwd|pass|password|pwd|secret|token|pw|apiKey|bearer|cred"
+        pattern: "(?i)passwd|pass|password|pwd|secret|token|pw|apiKey|bearer|cred"
+        # If true, complain about all cases (even with low entropy).
+        # Default: false
+        ignore_entropy: false
+        # Maximum allowed entropy of the string.
+        # Default: "80.0"
+        entropy_threshold: "80.0"
+        # Maximum allowed value of entropy/string length.
+        # Is taken into account if entropy >= entropy_threshold/2.
+        # Default: "3.0"
+        per_char_threshold: "3.0"
+        # Calculate entropy for first N chars of the string.
+        # Default: "16"
+        truncate: "16"
+      # Additional functions to ignore while checking unhandled errors.
+      # Following functions always ignored:
+      #   bytes.Buffer:
+      #     - Write
+      #     - WriteByte
+      #     - WriteRune
+      #     - WriteString
+      #   fmt:
+      #     - Print
+      #     - Printf
+      #     - Println
+      #     - Fprint
+      #     - Fprintf
+      #     - Fprintln
+      #   strings.Builder:
+      #     - Write
+      #     - WriteByte
+      #     - WriteRune
+      #     - WriteString
+      #   io.PipeWriter:
+      #     - CloseWithError
+      #   hash.Hash:
+      #     - Write
+      #   os:
+      #     - Unsetenv
+      # Default: {}
+      G104:
+        fmt:
+          - Fscanf
+      G111:
+        # Regexp pattern to find potential directory traversal.
+        # Default: "http\\.Dir\\(\"\\/\"\\)|http\\.Dir\\('\\/'\\)"
+        pattern: "http\\.Dir\\(\"\\/\"\\)|http\\.Dir\\('\\/'\\)"
+      # Maximum allowed permissions mode for os.Mkdir and os.MkdirAll
+      # Default: "0750"
+      G301: "0750"
+      # Maximum allowed permissions mode for os.OpenFile and os.Chmod
+      # Default: "0600"
+      G302: "0600"
+      # Maximum allowed permissions mode for os.WriteFile and ioutil.WriteFile
+      # Default: "0600"
+      G306: "0600"
+
+  inamedparam:
+    # Skips check for interface methods with only a single parameter.
+    # Default: false
+    skip-single-param: true
+
+  interfacebloat:
+    # The maximum number of methods allowed for an interface.
+    # Default: 10
+    max: 15
+
+  ireturn:
+    # List of interfaces to allow.
+    # Lists of the keywords and regular expressions matched to interface or package names can be used.
+    # `allow` and `reject` settings cannot be used at the same time.
+    #
+    # Keywords:
+    # - `empty` for `interface{}`
+    # - `error` for errors
+    # - `stdlib` for standard library
+    # - `anon` for anonymous interfaces
+    # - `generic` for generic interfaces added in go 1.18
+    #
+    # Default: [anon, error, empty, stdlib]
+    allow:
+      - anon
+      - error
+      - empty
+      - stdlib
+      - generic
+      - github.com/nats-io/nats.go/jetstream
+
+    # List of interfaces to reject.
+    # Lists of the keywords and regular expressions matched to interface or package names can be used.
+    # `allow` and `reject` settings cannot be used at the same time.
+    #
+    # Keywords:
+    # - `empty` for `interface{}`
+    # - `error` for errors
+    # - `stdlib` for standard library
+    # - `anon` for anonymous interfaces
+    # - `generic` for generic interfaces added in go 1.18
+    #
+    # Default: []
+    reject:
+
+  lll:
+    # Max line length, lines longer will be reported.
+    # '\t' is counted as 1 character by default, and can be changed with the tab-width option.
+    # Default: 120.
+    line-length: 160
+    # Tab width in spaces.
+    # Default: 1
+    tab-width: 1
+
+  maintidx:
+    # Show functions with maintainability index lower than N.
+    # A high index indicates better maintainability (it's kind of the opposite of complexity).
+    # Default: 20
+    under: 20
+
+  makezero:
+    # Allow only slices initialized with a length of zero.
+    # Default: false
+    always: false
+
+  misspell:
+    # Correct spellings using locale preferences for US or UK.
+    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
+    # Default is to use a neutral variety of English.
+    locale:
+    # Typos to ignore.
+    # Should be in lower case.
+    # Default: []
+    ignore-words:
+    # Extra word corrections.
+    # `typo` and `correction` should only contain letters.
+    # The words are case-insensitive.
+    # Default: []
+    extra-words:
+    # Mode of the analysis:
+    # - default: checks all the file content.
+    # - restricted: checks only comments.
+    # Default: ""
+    mode:
+
+  nakedret:
+    # Make an issue if func has more lines of code than this setting, and it has naked returns.
+    # Default: 30
+    max-func-lines: 0
+
+  nilnil:
+    # List of return types to check.
+    # Default: ["ptr", "func", "iface", "map", "chan", "uintptr", "unsafeptr"]
+    checked-types:
+      - ptr
+      - func
+      - iface
+      - map
+      - chan
+      - uintptr
+      - unsafeptr
+
+  nolintlint:
+    # Disable to ensure that all nolint directives actually have an effect.
+    # Default: false
+    allow-unused: false
+    # Exclude following linters from requiring an explanation.
+    # Default: []
+    allow-no-explanation: []
+    # Enable to require an explanation of nonzero length after each nolint directive.
+    # Default: false
+    require-explanation: true
+    # Enable to require nolint directives to mention the specific linter being suppressed.
+    # Default: false
+    require-specific: true
+
+  nonamedreturns:
+    # Report named error if it is assigned inside defer.
+    # Default: false
+    report-error-in-defer: false
+
+  paralleltest:
+    # Ignore missing calls to `t.Parallel()` and only report incorrect uses of it.
+    # Default: false
+    ignore-missing: false
+    # Ignore missing calls to `t.Parallel()` in subtests. Top-level tests are
+    # still required to have `t.Parallel`, but subtests are allowed to skip it.
+    # Default: false
+    ignore-missing-subtests: false
+
+  perfsprint:
+    # Optimizes even if it requires an int or uint type cast.
+    # Default: true
+    int-conversion: true
+    # Optimizes into `err.Error()` even if it is only equivalent for non-nil errors.
+    # Default: false
+    err-error: false
+    # Optimizes `fmt.Errorf`.
+    # Default: true
+    errorf: true
+    # Optimizes `fmt.Sprintf` with only one argument.
+    # Default: true
+    sprintf1: true
+    # Optimizes into strings concatenation.
+    # Default: true
+    strconcat: true
+
+  prealloc:
+    # IMPORTANT: we don't recommend using this linter before doing performance profiling.
+    # For most programs usage of prealloc will be a premature optimization.
+
+    # Report pre-allocation suggestions only on simple loops that have no returns/breaks/continues/gotos in them.
+    # Default: true
+    simple: true
+    # Report pre-allocation suggestions on range loops.
+    # Default: true
+    range-loops: true
+    # Report pre-allocation suggestions on for loops.
+    # Default: false
+    for-loops: true
+
+  predeclared:
+    # Comma-separated list of predeclared identifiers to not report on.
+    # Default: ""
+    ignore: ""
+    # Include method names and field names (i.e., qualified names) in checks.
+    # Default: false
+    q: false
+
+  promlinter:
+    # Promlinter cannot infer all metrics name in static analysis.
+    # Enable strict mode will also include the errors caused by failing to parse the args.
+    # Default: false
+    strict: false
+    # Please refer to https://github.com/yeya24/promlinter#usage for detailed usage.
+    # Default: []
+    disabled-linters:
+
+  protogetter:
+    # Skip files generated by specified generators from the checking.
+    # Checks only the file's initial comment, which must follow the format: "// Code generated by <generator-name>".
+    # Files generated by protoc-gen-go, protoc-gen-go-grpc, and protoc-gen-grpc-gateway are always excluded automatically.
+    # Default: []
+    skip-generated-by:
+    # Skip files matching the specified glob pattern from the checking.
+    # Default: []
+    skip-files:
+      - "*.pb.go"
+      - "*/vendor/*"
+    # Skip any generated files from the checking.
+    # Default: false
+    skip-any-generated: true
+    # Skip first argument of append function.
+    # Default: false
+    replace-first-arg-in-append: false
+
+  revive:
+    # Maximum number of open files at the same time.
+    # See https://github.com/mgechev/revive#command-line-flags
+    # Defaults to unlimited.
+    # max-open-files:
+
+    # When set to false, ignores files with "GENERATED" header, similar to golint.
+    # See https://github.com/mgechev/revive#available-rules for details.
+    # Default: false
+    ignore-generated-header: true
+
+    # Sets the default severity.
+    # See https://github.com/mgechev/revive#configuration
+    # Default: warning
+    severity: warning
+
+    # Enable all available rules.
+    # Default: false
+    enable-all-rules: false
+
+    # Sets the default failure confidence.
+    # This means that linting errors with less than 0.8 confidence will be ignored.
+    # Default: 0.8
+    confidence: 0.8
+
+    rules:
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#atomic
+      - name: atomic
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#blank-imports
+      - name: blank-imports
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#bool-literal-in-expr
+      - name: bool-literal-in-expr
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#call-to-gc
+      - name: call-to-gc
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-naming
+      - name: confusing-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-results
+      - name: confusing-results
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#constant-logical-expr
+      - name: constant-logical-expr
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-as-argument
+      - name: context-as-argument
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - allowTypesBefore: "*testing.T"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-keys-type
+      - name: context-keys-type
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#datarace
+      - name: datarace
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#deep-exit
+      - name: deep-exit
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#defer
+      - name: defer
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - ["call-chain", "loop"]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#dot-imports
+      - name: dot-imports
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments: []
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-block
+      - name: empty-block
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-lines
+      - name: empty-lines
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-naming
+      - name: error-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-return
+      - name: error-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-strings
+      - name: error-strings
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#errorf
+      - name: errorf
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#exported
+      - name: exported
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "checkPrivateReceivers"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#flag-parameter
+      - name: flag-parameter
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#get-return
+      - name: get-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#identical-branches
+      - name: identical-branches
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#if-return
+      - name: if-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#increment-decrement
+      - name: increment-decrement
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#indent-error-flow
+      - name: indent-error-flow
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
+      - name: modifies-parameter
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-value-receiver
+      - name: modifies-value-receiver
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#nested-structs
+      - name: nested-structs
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#optimize-operands-order
+      - name: optimize-operands-order
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#package-comments
+      - name: package-comments
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range
+      - name: range
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range-val-in-closure
+      - name: range-val-in-closure
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#receiver-naming
+      - name: receiver-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redefines-builtin-id
+      - name: redefines-builtin-id
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redundant-import-alias
+      - name: redundant-import-alias
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-format
+      - name: string-format
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - - "core.WriteError[1].Message"
+            - "/^([^A-Z]|$)/"
+            - must not start with a capital letter
+          - - "fmt.Errorf[0]"
+            - '/(^|[^\.!?])$/'
+            - must not end in punctuation
+          - - panic
+            - '/^[^\n]*$/'
+            - must not contain line breaks
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-of-int
+      - name: string-of-int
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-equal
+      - name: time-equal
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-naming
+      - name: time-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unconditional-recursion
+      - name: unconditional-recursion
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unexported-naming
+      - name: unexported-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unexported-return
+      - name: unexported-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unnecessary-stmt
+      - name: unnecessary-stmt
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unreachable-code
+      - name: unreachable-code
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unused-parameter
+      - name: unused-parameter
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - allowRegex: "^_"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unused-receiver
+      - name: unused-receiver
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - allowRegex: "^_"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#use-any
+      - name: use-any
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#useless-break
+      - name: useless-break
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-declaration
+      - name: var-declaration
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-naming
+      - name: var-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - ["ID"] # AllowList
+          - ["VM"] # DenyList
+          - - upperCaseConst: true # Extra parameter (upperCaseConst|skipPackageNameChecks)
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#waitgroup-by-value
+      - name: waitgroup-by-value
+        severity: warning
+        disabled: false
+        exclude: [""]
+
+  rowserrcheck:
+    # database/sql is always checked
+    # Default: []
+    packages:
+
+  sloglint:
+    # Enforce using attributes only (overrides no-mixed-args, incompatible with kv-only).
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#attributes-only
+    # Default: false
+    attr-only: true
+    # Enforce not using global loggers.
+    # Values:
+    # - "": disabled
+    # - "all": report all global loggers
+    # - "default": report only the default slog logger
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#no-global
+    # Default: ""
+    no-global: "all"
+    # Enforce using methods that accept a context.
+    # Values:
+    # - "": disabled
+    # - "all": report all contextless calls
+    # - "scope": report only if a context exists in the scope of the outermost function
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#context-only
+    # Default: ""
+    context: "scope"
+    # Enforce using static values for log messages.
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#static-messages
+    # Default: false
+    static-msg: false
+    # Enforce using constants instead of raw keys.
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#no-raw-keys
+    # Default: false
+    no-raw-keys: false
+    # Enforce a single key naming convention.
+    # Values: snake, kebab, camel, pascal
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#key-naming-convention
+    # Default: ""
+    key-naming-case: camel
+    # Enforce not using specific keys.
+    # Default: []
+    forbidden-keys:
+      - time
+      - level
+      - msg
+      - source
+    # Enforce putting arguments on separate lines.
+    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#forbidden-keys
+    # Default: false
+    args-on-sep-lines: false
+
+  spancheck:
+    # Checks to enable.
+    # Options include:
+    # - `end`: check that `span.End()` is called
+    # - `record-error`: check that `span.RecordError(err)` is called when an error is returned
+    # - `set-status`: check that `span.SetStatus(codes.Error, msg)` is called when an error is returned
+    # Default: ["end"]
+    checks:
+      - end
+      - record-error
+      - set-status
+    # A list of regexes for function signatures that silence `record-error` and `set-status` reports
+    # if found in the call path to a returned error.
+    # https://github.com/jjti/go-spancheck#ignore-check-signatures
+    # Default: []
+    ignore-check-signatures:
+    # A list of regexes for additional function signatures that create spans.
+    # This is useful if you have a utility method to create spans.
+    # Each entry should be of the form `<regex>:<telemetry-type>`, where `telemetry-type` can be `opentelemetry` or `opencensus`.
+    # https://github.com/jjti/go-spancheck#extra-start-span-signatures
+    # Default: []
+    extra-start-span-signatures:
+
+  stylecheck:
+    # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: ["all"]
+    # https://staticcheck.io/docs/configuration/options/#dot_import_whitelist
+    # Default: ["github.com/mmcloughlin/avo/build", "github.com/mmcloughlin/avo/operand", "github.com/mmcloughlin/avo/reg"]
+    dot-import-whitelist:
+    # https://staticcheck.io/docs/configuration/options/#initialisms
+    # Default: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
+    initialisms:
+      [
+        "ACL",
+        "API",
+        "ASCII",
+        "CPU",
+        "CSS",
+        "DNS",
+        "EOF",
+        "GUID",
+        "HTML",
+        "HTTP",
+        "HTTPS",
+        "ID",
+        "IP",
+        "JSON",
+        "QPS",
+        "RAM",
+        "RPC",
+        "SLA",
+        "SMTP",
+        "SQL",
+        "SSH",
+        "TCP",
+        "TLS",
+        "TTL",
+        "UDP",
+        "UI",
+        "GID",
+        "UID",
+        "UUID",
+        "URI",
+        "URL",
+        "UTF8",
+        "VM",
+        "XML",
+        "XMPP",
+        "XSRF",
+        "XSS",
+        "SIP",
+        "RTP",
+        "AMQP",
+        "DB",
+        "TS",
+      ]
+    # https://staticcheck.io/docs/configuration/options/#http_status_code_whitelist
+    # Default: ["200", "400", "404", "500"]
+    http-status-code-whitelist: ["200", "400", "404", "500"]
+
+  testifylint:
+    # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
+    # Default: false
+    # enable-all: false
+    # Disable checkers by name
+    # (in addition to default
+    #   suite-thelper
+    # ).
+    # disable:
+
+    # Disable all checkers (https://github.com/Antonboom/testifylint#checkers).
+    # Default: false
+    disable-all: true
+    # Enable checkers by name
+    # (in addition to default
+    #   blank-import, bool-compare, compares, empty, error-is-as, error-nil, expected-actual, go-require, float-compare,
+    #   formatter, len, negative-positive, nil-compare, require-error, suite-broken-parallel, suite-dont-use-pkg,
+    #   suite-extra-assert-call, suite-subtest-run, useless-assert
+    # ).
+    enable:
+      - blank-import
+      - bool-compare
+      - compares
+      - empty
+      - error-is-as
+      - error-nil
+      - expected-actual
+      - float-compare
+      - go-require
+      - len
+      - negative-positive
+      - nil-compare
+      - suite-dont-use-pkg
+      - suite-extra-assert-call
+      - suite-thelper
+      - useless-assert
+    bool-compare:
+      # To ignore user defined types (over builtin bool).
+      # Default: false
+      ignore-custom-types: false
+    expected-actual:
+      # Regexp for expected variable name.
+      # Default: (^(exp(ected)?|want(ed)?)([A-Z]\w*)?$)|(^(\w*[a-z])?(Exp(ected)?|Want(ed)?)$)
+      pattern: (^(exp(ected)?|want(ed)?)([A-Z]\w*)?$)|(^(\w*[a-z])?(Exp(ected)?|Want(ed)?)$)
+    go-require:
+      # To ignore HTTP handlers (like http.HandlerFunc).
+      # Default: false
+      ignore-http-handlers: false
+    require-error:
+      # Regexp for assertions to analyze. If defined, then only matched error assertions will be reported.
+      # Default: ""
+      fn-pattern: ""
+    suite-extra-assert-call:
+      # To require or remove extra Assert() call?
+      # Default: remove
+      mode: remove
+
+  thelper:
+    test:
+      # Check *testing.T is first param (or after context.Context) of helper function.
+      # Default: true
+      first: true
+      # Check *testing.T param has name t.
+      # Default: true
+      name: true
+      # Check t.Helper() begins helper function.
+      # Default: true
+      begin: true
+    benchmark:
+      # Check *testing.B is first param (or after context.Context) of helper function.
+      # Default: true
+      first: true
+      # Check *testing.B param has name b.
+      # Default: true
+      name: true
+      # Check b.Helper() begins helper function.
+      # Default: true
+      begin: true
+    tb:
+      # Check *testing.TB is first param (or after context.Context) of helper function.
+      # Default: true
+      first: true
+      # Check *testing.TB param has name tb.
+      # Default: true
+      name: true
+      # Check tb.Helper() begins helper function.
+      # Default: true
+      begin: true
+    fuzz:
+      # Check *testing.F is first param (or after context.Context) of helper function.
+      # Default: true
+      first: true
+      # Check *testing.F param has name f.
+      # Default: true
+      name: true
+      # Check f.Helper() begins helper function.
+      # Default: true
+      begin: true
+
+  usestdlibvars:
+    # Suggest the use of http.MethodXX.
+    # Default: true
+    http-method: true
+    # Suggest the use of http.StatusXX.
+    # Default: true
+    http-status-code: true
+    # Suggest the use of time.Weekday.String().
+    # Default: true
+    time-weekday: true
+    # Suggest the use of time.Month.String().
+    # Default: false
+    time-month: true
+    # Suggest the use of time.Layout.
+    # Default: false
+    time-layout: true
+    # Suggest the use of crypto.Hash.String().
+    # Default: false
+    crypto-hash: true
+    # Suggest the use of rpc.DefaultXXPath.
+    # Default: false
+    default-rpc-path: true
+    # Suggest the use of sql.LevelXX.String().
+    # Default: false
+    sql-isolation-level: true
+    # Suggest the use of tls.SignatureScheme.String().
+    # Default: false
+    tls-signature-scheme: true
+    # Suggest the use of constant.Kind.String().
+    # Default: false
+    constant-kind: true
+
+  unconvert:
+    # Remove conversions that force intermediate rounding.
+    # Default: false
+    fast-math: false
+    # Be more conservative (experimental).
+    # Default: false
+    safe: false
+
+  unparam:
+    # Inspect exported functions.
+    #
+    # Set to true if no external program/library imports your code.
+    # XXX: if you enable this setting, unparam will report a lot of false-positives in text editors:
+    # if it's called for subdir of a project it can't find external interfaces. All text editor integrations
+    # with golangci-lint call it on a directory with the changed file.
+    #
+    # Default: false
+    check-exported: false
+
+  wsl:
+    # Do strict checking when assigning from append (x = append(x, y)).
+    # If this is set to true - the append call must append either a variable
+    # assigned, called or used on the line above.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#strict-append
+    # Default: true
+    strict-append: true
+
+    # Allows assignments to be cuddled with variables used in calls on
+    # line above and calls to be cuddled with assignments of variables
+    # used in call on line above.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-assign-and-call
+    # Default: true
+    allow-assign-and-call: true
+
+    # Allows assignments to be cuddled with anything.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-assign-and-anything
+    # Default: false
+    allow-assign-and-anything: false
+
+    # Allows cuddling to assignments even if they span over multiple lines.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-multiline-assign
+    # Default: true
+    allow-multiline-assign: true
+
+    # If the number of lines in a case block is equal to or lager than this number,
+    # the case *must* end white a newline.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#force-case-trailing-whitespace
+    # Default: 0
+    force-case-trailing-whitespace: 0
+
+    # Allow blocks to end with comments.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-trailing-comment
+    # Default: false
+    allow-trailing-comment: false
+
+    # Allow multiple comments in the beginning of a block separated with newline.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-separated-leading-comment
+    # Default: false
+    allow-separated-leading-comment: false
+
+    # Allow multiple var/declaration statements to be cuddled.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-cuddle-declarations
+    # Default: false
+    allow-cuddle-declarations: false
+
+    # A list of call idents that everything can be cuddled with.
+    # Defaults: [ "Lock", "RLock" ]
+    allow-cuddle-with-calls: ["Lock", "RLock"]
+
+    # AllowCuddleWithRHS is a list of right hand side variables that is allowed
+    # to be cuddled with anything.
+    # Defaults: [ "Unlock", "RUnlock" ]
+    allow-cuddle-with-rhs: ["Unlock", "RUnlock"]
+
+    # Causes an error when an if-statement that checks an error variable doesn't
+    # cuddle with the assignment of that variable.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#force-err-cuddling
+    # Default: false
+    force-err-cuddling: true
+
+    # When force-err-cuddling is enabled this is a list of names
+    # used for error variables to check for in the conditional.
+    # Default: [ "err" ]
+    error-variable-names: ["err"]
+
+    # Causes an error if a short declaration (:=) cuddles with anything other than
+    # another short declaration.
+    # This logic overrides force-err-cuddling among others.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#force-short-decl-cuddling
+    # Default: false
+    force-short-decl-cuddling: false
 
 linters:
+  # Disable all linters.
+  # Default: false
   disable-all: true
+  # Enable specific linter
+  # https://golangci-lint.run/usage/linters/#enabled-by-default
   enable:
-    - asciicheck
-    - bodyclose
-    - dogsled
-    - dupl
-    - durationcheck
-    - errcheck
-    - errorlint
-    - exhaustive
-    - exportloopref
-    - forcetypeassert
-    - gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - godox
-    - gofmt
-    - goheader
-    - goimports
-    - gomnd
-    - gomoddirectives
-    - gomodguard
-    - goprintffuncname
-    - gosimple
-    - govet
-    - importas
-    - ineffassign
-    - lll
-    - makezero
-    - misspell
-    - nakedret
-    - nilerr
-    - nlreturn
-    - noctx
-    - nolintlint
-    - prealloc
-    - predeclared
-    - revive
-    - rowserrcheck
-    - sqlclosecheck
-    - staticcheck
-    - stylecheck
-    - thelper
-    - tparallel
-    - typecheck
-    - unconvert
-    - unparam
-    - unused
-    - wastedassign
-    - whitespace
+    ### Custom linters
+    - zaploglabel
+    ### Default linters
+    - errcheck # Errcheck is a program for checking for unchecked errors in Go code.
+    - gosimple # Linter for Go source code that specializes in simplifying code.
+    - govet # Vet examines Go source code and reports suspicious constructs.
+    - ineffassign # Detects when assignments to existing variables are not used.
+    - staticcheck # It's a set of rules from staticcheck.
+    - unused # Checks Go code for unused constants, variables, functions and types.
+    ### Additional linters
+    - asasalint # Check for pass []any as any in variadic func(...any).
+    - asciicheck # Checks that all code identifiers does not have non-ASCII symbols in the name.
+    - bidichk # Checks for dangerous unicode character sequences.
+    - bodyclose # Checks whether HTTP response body is closed successfully.
+    - canonicalheader # Canonicalheader checks whether net/http.Header uses canonical header.
+    - containedctx # Containedctx is a linter that detects struct contained context.Context field.
+    - contextcheck # Check whether the function uses a non-inherited context.
+    - copyloopvar # Copyloopvar is a linter detects places where loop variables are copied.
+    - dogsled # Checks assignments with too many blank identifiers (e.g. x, , , _, := f()).
+    - dupword # Checks for duplicate words in the source code.
+    - durationcheck # Check for two durations multiplied together.
+    - errchkjson # Checks types passed to the json encoding functions.
+    - errname # Checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error.
+    - errorlint # Errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
+    - exhaustive # Check exhaustiveness of enum switch statements.
+    - fatcontext # Detects nested contexts in loops.
+    - funlen # Tool for detection of long functions.
+    - gci # Gci controls Go package import order and makes it always deterministic.
+    - gocheckcompilerdirectives # Checks that go compiler directive comments (//go:) are valid.
+    - gochecksumtype # Run exhaustiveness checks on Go "sum types".
+    - gocognit # Computes and checks the cognitive complexity of functions.
+    - goconst # Finds repeated strings that could be replaced by a constant.
+    - gocritic # Provides diagnostics that check for bugs, performance and style issues.
+    - godox # Tool for detection of FIXME, TODO and other comment keywords.
+    - gofmt # Gofmt checks whether code was gofmt-ed.
+    - gofumpt # Gofumpt checks whether code was gofumpt-ed.
+    - goprintffuncname # Checks that printf-like functions are named with f at the end.
+    - gosec # Inspects source code for security problems.
+    - inamedparam # Reports interfaces with unnamed method parameters.
+    - interfacebloat # A linter that checks the number of methods inside an interface.
+    - intrange # Intrange is a linter to find places where for loops could make use of an integer range.
+    - ireturn # Accept Interfaces, Return Concrete Types.
+    - lll # Reports long lines.
+    - maintidx # Maintidx measures the maintainability index of each function.
+    - makezero # Finds slice declarations with non-zero initial length.
+    - mirror # Reports wrong mirror patterns of bytes/strings usage.
+    - misspell # Finds commonly misspelled English words.
+    - nakedret # Checks that functions with naked returns are not longer than a maximum size (can be zero).
+    - nilerr # Finds the code that returns nil even if it checks that the error is not nil.
+    - nilnil # Checks that there is no simultaneous return of nil error and an invalid value.
+    - noctx # Finds sending http request without context.Context.
+    - nolintlint # Reports ill-formed or insufficient nolint directives.
+    - nosprintfhostport # Checks for misuse of Sprintf to construct a host with port in a URL.
+    - paralleltest # Detects missing usage of t.Parallel() method in your Go test.
+    - perfsprint # Checks that fmt.Sprintf can be replaced with a faster alternative.
+    - prealloc # Finds slice declarations that could potentially be pre-allocated.
+    - predeclared # Find code that shadows one of Go's predeclared identifiers.
+    - promlinter # Check Prometheus metrics naming via promlint.
+    - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go.
+    - rowserrcheck # Checks whether Rows.Err of rows is checked successfully.
+    - sloglint # Ensure consistent code style when using log/slog.
+    - spancheck # Checks for mistakes with OpenTelemetry/Census spans.
+    - sqlclosecheck # Checks that sql.Rows, sql.Stmt, sqlx.NamedStmt, pgx.Query are closed.
+    - stylecheck # Stylecheck is a replacement for golint.
+    - testifylint # Checks usage of github.com/stretchr/testify.
+    - thelper # Thelper detects tests helpers which is not start with t.Helper() method.
+    - tparallel # Tparallel detects inappropriate usage of t.Parallel() method in your Go test codes.
+    - unconvert # Remove unnecessary type conversions.
+    - unparam # Reports unused function parameters.
+    - usestdlibvars # A linter that detect the possibility to use variables/constants from the Go standard library.
+    - wsl # Add or remove empty lines.
+
+  # Enable all available linters.
+  # Default: false
+  # enable-all: false
+  # Disable specific linter
+  # https://golangci-lint.run/usage/linters/#disabled-by-default
+  # disable:
+
+  # Enable presets.
+  # https://golangci-lint.run/usage/linters
+  # Default: []
+  # presets:
+
+  # Enable only fast linters from enabled linters set (first run won't be fast)
+  # Default: false
+  fast: false
+
+issues:
+  # List of regexps of issue texts to exclude.
+  #
+  # But independently of this option we use default exclude patterns,
+  # it can be disabled by `exclude-use-default: false`.
+  # To list all excluded by default patterns execute `golangci-lint run --help`
+  #
+  # Default: https://golangci-lint.run/usage/false-positives/#default-exclusions
+  # exclude:
+
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - dupl
+        - funlen
+        - gocognit
+        - gosec
+        - lll
+        - maintidx
+        - nlreturn
+        - revive
+        - wsl
+
+    # Run some linter only for test files by excluding its issues for everything else.
+    - path-except: _test\.go
+      linters:
+        - paralleltest
+        - testifylint
+        - thelper
+        - tparallel
+
+    # Exclude known linters from partially hard-vendored code,
+    # which is impossible to exclude via `nolint` comments.
+    # `/` will be replaced by current OS file path separator to properly work on Windows.
+    # - path: internal/hmac/
+    #   text: "weak cryptographic primitive"
+    #   linters:
+    #     - gosec
+
+    # Exclude some `staticcheck` messages.
+    # - linters:
+    #     - staticcheck
+    #   text: "SA9003:"
+
+    # Exclude `lll` issues for long lines with `go:generate`.
+    - linters:
+        - lll
+      source: "^//go:generate "
+
+    # Exclude govet shadow for err variable.
+    - text: 'shadow: declaration of "err" shadows declaration at'
+      linters: [govet]
+
+  # Independently of option `exclude` we use default exclude patterns,
+  # it can be disabled by this option.
+  # To list all excluded by default patterns execute `golangci-lint run --help`.
+  # Default: true
+  exclude-use-default: false
+
+  # If set to true, `exclude` and `exclude-rules` regular expressions become case-sensitive.
+  # Default: false
+  exclude-case-sensitive: false
+
+  # Which dirs to exclude: issues from them won't be reported.
+  # Can use regexp here: `generated.*`, regexp is applied on full path,
+  # including the path prefix if one is set.
+  # Default dirs are skipped independently of this option's value (see exclude-dirs-use-default).
+  # "/" will be replaced by current OS file path separator to properly work on Windows.
+  # Default: []
+  exclude-dirs:
+    - mocks
+
+  # Enables exclude of directories:
+  # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
+  # Default: true
+  exclude-dirs-use-default: true
+
+  # Which files to exclude: they will be analyzed, but issues from them won't be reported.
+  # There is no need to include all autogenerated files,
+  # we confidently recognize autogenerated files.
+  # If it's not, please let us know.
+  # "/" will be replaced by current OS file path separator to properly work on Windows.
+  # Default: []
+  # exclude-files:
+
+  # Mode of the generated files analysis.
+  #
+  # - `strict`: sources are excluded by following strictly the Go generated file convention.
+  #    Source files that have lines matching only the following regular expression will be excluded: `^// Code generated .* DO NOT EDIT\.$`
+  #    This line must appear before the first non-comment, non-blank text in the file.
+  #    https://go.dev/s/generatedcode
+  # - `lax`: sources are excluded if they contain lines `autogenerated file`, `code generated`, `do not edit`, etc.
+  # - `disable`: disable the generated files exclusion.
+  #
+  # Default: lax
+  exclude-generated: lax
+
+  # The list of ids of default excludes to include or disable.
+  # https://golangci-lint.run/usage/false-positives/#default-exclusions
+  # Default: []
+  # include:
+
+  # Maximum issues count per one linter.
+  # Set to 0 to disable.
+  # Default: 50
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text.
+  # Set to 0 to disable.
+  # Default: 3
+  max-same-issues: 0
+
+  # Show only new issues: if there are unstaged changes or untracked files,
+  # only those changes are analyzed, else only changes in HEAD~ are analyzed.
+  # It's a super-useful option for integration of golangci-lint into existing large codebase.
+  # It's not practical to fix all existing issues at the moment of integration:
+  # much better don't allow issues in new code.
+  #
+  # Default: false
+  new: false
+
+  # Show only new issues created after git revision `REV`.
+  # Default: ""
+  # new-from-rev:
+
+  # Show only new issues created in git patch with set file path.
+  # Default: ""
+  # new-from-patch:
+
+  # Show issues in any part of update files (requires new-from-rev or new-from-patch).
+  # Default: false
+  whole-files: false
+
+  # Fix found issues (if it's supported by the linter).
+  # Default: false
+  fix: true
+
+severity:
+  # Set the default severity for issues.
+  #
+  # If severity rules are defined and the issues do not match or no severity is provided to the rule
+  # this will be the default severity applied.
+  # Severities should match the supported severity names of the selected out format.
+  # - Code climate: https://docs.codeclimate.com/docs/issues#issue-severity
+  # - Checkstyle: https://checkstyle.sourceforge.io/property_types.html#SeverityLevel
+  # - GitHub: https://help.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
+  # - TeamCity: https://www.jetbrains.com/help/teamcity/service-messages.html#Inspection+Instance
+  #
+  # `@linter` can be used as severity value to keep the severity from linters (e.g. revive, gosec, ...)
+  #
+  # Default: ""
+  default-severity: warning
+
+  # If set to true `severity-rules` regular expressions become case-sensitive.
+  # Default: false
+  case-sensitive: false
+
+  # When a list of severity rules are provided, severity information will be added to lint issues.
+  # Severity rules have the same filtering capability as exclude rules
+  # except you are allowed to specify one matcher per severity rule.
+  #
+  # `@linter` can be used as severity value to keep the severity from linters (e.g. revive, gosec, ...)
+  #
+  # Only affects out formats that support setting severity information.
+  #
+  # Default: []
+  rules:
+    - linters:
+        - funlen
+        - gocognit
+        - lll
+        - paralleltest
+        - wsl
+      severity: info
+    - linters:
+        - errcheck
+        - gosec
+        - gosimple
+        - govet
+        - ineffassign
+        - staticcheck
+        - unused
+      severity: error

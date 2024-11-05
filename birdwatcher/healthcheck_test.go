@@ -9,6 +9,8 @@ import (
 )
 
 func TestHealthCheck_addPrefix(t *testing.T) {
+	t.Parallel()
+
 	hc := HealthCheck{}
 	assert.Nil(t, hc.prefixes)
 
@@ -16,48 +18,53 @@ func TestHealthCheck_addPrefix(t *testing.T) {
 	// and add the prefix under the right prefixset
 	_, prefix, _ := net.ParseCIDR("1.2.3.0/24")
 	hc.addPrefix(&ServiceCheck{name: "svc1", FunctionName: "foo"}, *prefix)
-	assert.Equal(t, 1, len(hc.prefixes))
+	assert.Len(t, hc.prefixes, 1)
 	assert.Equal(t, *prefix, hc.prefixes["foo"].prefixes[0])
 
-	assert.Equal(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
+	assert.InEpsilon(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")), 0.00001)
 
 	_, prefix, _ = net.ParseCIDR("2.3.4.0/24")
 	hc.addPrefix(&ServiceCheck{name: "svc2", FunctionName: "bar"}, *prefix)
-	assert.Equal(t, 2, len(hc.prefixes))
+	assert.Len(t, hc.prefixes, 2)
 	assert.Equal(t, *prefix, hc.prefixes["bar"].prefixes[0])
 
-	assert.Equal(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc2", "2.3.4.0/24")))
+	assert.InEpsilon(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc2", "2.3.4.0/24")), 0.00001)
 }
 
 func TestHealthCheck_removePrefix(t *testing.T) {
+	t.Parallel()
+
 	hc := HealthCheck{}
 	assert.Nil(t, hc.prefixes)
+
 	_, prefix, _ := net.ParseCIDR("1.2.3.0/24")
 
 	svc1 := &ServiceCheck{name: "svc1", FunctionName: "foo"}
 	hc.addPrefix(svc1, *prefix)
-	assert.Equal(t, 1, len(hc.prefixes))
-	assert.Equal(t, 1, len(hc.prefixes["foo"].prefixes))
+	assert.Len(t, hc.prefixes, 1)
+	assert.Len(t, hc.prefixes["foo"].prefixes, 1)
 
-	assert.Equal(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
+	assert.InEpsilon(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")), 0.00001)
 
 	// this should initialise the prefixset but won't remove any prefixes
 	svc2 := &ServiceCheck{name: "svc2", FunctionName: "bar"}
 	hc.removePrefix(svc2, *prefix)
-	assert.Equal(t, 2, len(hc.prefixes))
-	assert.Equal(t, 1, len(hc.prefixes["foo"].prefixes))
-	assert.Equal(t, 0, len(hc.prefixes["bar"].prefixes))
+	assert.Len(t, hc.prefixes, 2)
+	assert.Len(t, hc.prefixes["foo"].prefixes, 1)
+	assert.Empty(t, hc.prefixes["bar"].prefixes)
 
-	assert.Equal(t, 0.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc2", "1.2.3.0/24")))
+	assert.Empty(t, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc2", "1.2.3.0/24")))
 
 	// remove the prefix from the right prefixset
 	hc.removePrefix(svc1, *prefix)
-	assert.Equal(t, 0, len(hc.prefixes["foo"].prefixes))
+	assert.Empty(t, hc.prefixes["foo"].prefixes)
 
-	assert.Equal(t, 0.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
+	assert.Empty(t, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
 }
 
 func TestHealthCheckDidReloadBefore(t *testing.T) {
+	t.Parallel()
+
 	hc := NewHealthCheck(Config{})
 
 	// expect both to fail
@@ -74,6 +81,8 @@ func TestHealthCheckDidReloadBefore(t *testing.T) {
 }
 
 func TestHealthCheck_handleAction(t *testing.T) {
+	t.Parallel()
+
 	// empty healthcheck
 	hc := HealthCheck{}
 	assert.Nil(t, hc.prefixes)
@@ -83,6 +92,7 @@ func TestHealthCheck_handleAction(t *testing.T) {
 		State:    ServiceStateUp,
 		Prefixes: make([]net.IPNet, 2),
 	}
+
 	var prefix *net.IPNet
 	_, prefix, _ = net.ParseCIDR("1.2.3.0/24")
 	action.Prefixes[0] = *prefix
@@ -93,20 +103,24 @@ func TestHealthCheck_handleAction(t *testing.T) {
 	}
 	// handle service state up
 	hc.handleAction(action, nil)
+
 	if assert.Contains(t, hc.prefixes, "test") {
-		assert.Equal(t, 2, len(hc.prefixes["test"].prefixes))
+		assert.Len(t, hc.prefixes["test"].prefixes, 2)
 	}
 
 	// action switches to down for one of the prefixes
 	action.State = ServiceStateDown
 	action.Prefixes = action.Prefixes[1:]
 	hc.handleAction(action, nil)
+
 	if assert.Contains(t, hc.prefixes, "test") {
-		assert.Equal(t, 1, len(hc.prefixes["test"].prefixes))
+		assert.Len(t, hc.prefixes["test"].prefixes, 1)
 	}
 }
 
 func TestHealthCheck_statusUpdate(t *testing.T) {
+	t.Parallel()
+
 	// healthcheck with 2 empty services
 	hc := HealthCheck{services: []*ServiceCheck{
 		{name: "foo"}, {name: "bar"},

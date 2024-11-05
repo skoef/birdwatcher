@@ -87,6 +87,7 @@ func TestConfig(t *testing.T) {
 		t.Parallel()
 
 		testConf := Config{}
+
 		err := ReadConfig(&testConf, "testdata/config/minimal")
 		if !assert.NoError(t, err) {
 			return
@@ -97,20 +98,21 @@ func TestConfig(t *testing.T) {
 		assert.False(t, testConf.Prometheus.Enabled)
 		assert.Equal(t, defaultPrometheusPort, testConf.Prometheus.Port)
 		assert.Equal(t, defaultPrometheusPath, testConf.Prometheus.Path)
-		assert.Equal(t, 1, len(testConf.Services))
+		assert.Len(t, testConf.Services, 1)
 		assert.Equal(t, "foo", testConf.Services["foo"].name)
 		assert.Equal(t, defaultCheckInterval, testConf.Services["foo"].Interval)
 		assert.Equal(t, defaultFunctionName, testConf.Services["foo"].FunctionName)
 		assert.Equal(t, defaultServiceFail, testConf.Services["foo"].Fail)
 		assert.Equal(t, defaultServiceRise, testConf.Services["foo"].Rise)
 		assert.Equal(t, defaultServiceTimeout, testConf.Services["foo"].Timeout)
-		if assert.Equal(t, 1, len(testConf.Services["foo"].prefixes)) {
+
+		if assert.Len(t, testConf.Services["foo"].prefixes, 1) {
 			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
 		}
 
 		// check GetServices result
 		svcs := testConf.GetServices()
-		if assert.Equal(t, 1, len(svcs)) {
+		if assert.Len(t, svcs, 1) {
 			assert.Equal(t, "foo", svcs[0].name)
 		}
 	})
@@ -120,27 +122,31 @@ func TestConfig(t *testing.T) {
 		t.Parallel()
 
 		testConf := Config{}
+
 		err := ReadConfig(&testConf, "testdata/config/overridden")
 		if !assert.NoError(t, err) {
 			return
 		}
+
 		assert.Equal(t, "/etc/birdwatcher.conf", testConf.ConfigFile)
 		assert.Equal(t, "/sbin/birdc configure", testConf.ReloadCommand)
 		assert.True(t, testConf.Prometheus.Enabled)
 		assert.Equal(t, 1234, testConf.Prometheus.Port)
 		assert.Equal(t, "/something", testConf.Prometheus.Path)
 		assert.Equal(t, "foo_bar", testConf.Services["foo"].FunctionName)
-		if assert.Equal(t, 1, len(testConf.Services["foo"].prefixes)) {
+
+		if assert.Len(t, testConf.Services["foo"].prefixes, 1) {
 			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
 		}
-		if assert.Equal(t, 2, len(testConf.Services["bar"].prefixes)) {
+
+		if assert.Len(t, testConf.Services["bar"].prefixes, 2) {
 			assert.Equal(t, "192.168.1.0/24", testConf.Services["bar"].prefixes[0].String())
 			assert.Equal(t, "fc00::/7", testConf.Services["bar"].prefixes[1].String())
 		}
 
 		// check GetServices result
 		svcs := testConf.GetServices()
-		if assert.Equal(t, 2, len(svcs)) {
+		if assert.Len(t, svcs, 2) {
 			// order of the services is not guaranteed
 			for _, svc := range svcs {
 				switch svc.name {

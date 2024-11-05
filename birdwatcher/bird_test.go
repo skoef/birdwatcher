@@ -10,6 +10,8 @@ import (
 )
 
 func TestWriteBirdConfig(t *testing.T) {
+	t.Parallel()
+
 	// open tempfile
 	tmpFile, err := os.CreateTemp("", "bird_test")
 	require.NoError(t, err)
@@ -51,6 +53,8 @@ func TestWriteBirdConfig(t *testing.T) {
 }
 
 func TestBirdCompareFiles(t *testing.T) {
+	t.Parallel()
+
 	// open 2 tempfiles
 	tmpFileA, err := os.CreateTemp("", "bird_test")
 	require.NoError(t, err)

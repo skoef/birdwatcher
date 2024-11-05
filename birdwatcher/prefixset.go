@@ -2,16 +2,17 @@ package birdwatcher
 
 import (
 	"bytes"
+	// use embed for embedding the function template
+	_ "embed"
 	"net"
 	"text/template"
 
 	log "github.com/sirupsen/logrus"
-	// use embed for embedding the function template
-	_ "embed"
 )
 
 //go:embed templates/function.tpl
 var functionTemplate string
+
 var tplFuncs = template.FuncMap{
 	"prefpad": prefixPad,
 }

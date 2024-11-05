@@ -1,3 +1,4 @@
+// Package main is the main runtime of the birdwatcher application
 package main
 
 import (
@@ -10,10 +11,12 @@ import (
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+	"time"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+
 	"github.com/skoef/birdwatcher/birdwatcher"
 )
 
@@ -21,14 +24,12 @@ const (
 	systemdStatusBufferSize = 32
 )
 
-//nolint:gochecknoinits
-func init() {
+//nolint:funlen // we should refactor this a bit
+func main() {
 	// initialize logging
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
-}
 
-func main() {
 	var (
 		configFile  = flag.String("config", "/etc/birdwatcher.conf", "path to config file")
 		checkConfig = flag.Bool("check-config", false, "check config file and exit")
@@ -36,6 +37,7 @@ func main() {
 		useSystemd  = flag.Bool("systemd", false, "optimize behavior for running under systemd")
 		version     = flag.Bool("version", false, "show version and exit")
 	)
+
 	flag.Parse()
 
 	versionString := "(devel)"
@@ -78,8 +80,13 @@ func main() {
 
 	if *checkConfig {
 		fmt.Printf("Configuration file %s OK\n", *configFile)
+
 		if *debugFlag {
-			configJSON, _ := json.MarshalIndent(config, "", "  ")
+			configJSON, err := json.MarshalIndent(config, "", "  ")
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+
 			fmt.Println(string(configJSON))
 		}
 
@@ -89,14 +96,8 @@ func main() {
 	// enable prometheus
 	// Expose /metrics HTTP endpoint using the created custom registry.
 	if config.Prometheus.Enabled {
-		log.WithFields(log.Fields{
-			"port": config.Prometheus.Port,
-			"path": config.Prometheus.Path,
-		}).Info("starting prometheus exporter")
-
-		http.Handle(config.Prometheus.Path, promhttp.Handler())
 		go func() {
-			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Prometheus.Port), nil); err != nil {
+			if err := startPrometheus(config.Prometheus); err != nil {
 				log.WithError(err).Fatal("could not start prometheus exporter")
 			}
 		}()
@@ -105,20 +106,24 @@ func main() {
 	// start health checker
 	hc := birdwatcher.NewHealthCheck(config)
 	ready := make(chan bool)
+
 	var status *chan string
+
 	if *useSystemd {
 		// create status update channel for systemd
 		// give it a little buffer so the chances of it blocking the health check
 		// is low
 		s := make(chan string, systemdStatusBufferSize)
 		status = &s
+
 		go func() {
 			for update := range *status {
 				log.Debug("notifying systemd of new status")
-				sdnotify(fmt.Sprintf("STATUS=%s", update))
+				sdnotify("STATUS=" + update)
 			}
 		}()
 	}
+
 	go hc.Start(config.GetServices(), ready, status)
 	// wait for all health services to have started
 	<-ready
@@ -151,4 +156,23 @@ func sdnotify(msg string) {
 	if ok, err := daemon.SdNotify(false, msg); ok && err != nil {
 		log.WithError(err).Error("could not notify systemd")
 	}
+}
+
+func startPrometheus(c birdwatcher.PrometheusConfig) error {
+	log.WithFields(log.Fields{
+		"port": c.Port,
+		"path": c.Path,
+	}).Info("starting prometheus exporter")
+
+	mux := http.NewServeMux()
+	mux.Handle(c.Path, promhttp.Handler())
+
+	httpServer := &http.Server{
+		Addr:         fmt.Sprintf("0.0.0.0:%d", c.Port),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Handler:      mux,
+	}
+
+	return httpServer.ListenAndServe()
 }
