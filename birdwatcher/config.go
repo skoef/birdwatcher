@@ -10,16 +10,19 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Config -- struct for holding definitions from configuration file
+// Config holds definitions from configuration file
 type Config struct {
 	ConfigFile    string
 	ReloadCommand string
-	Prometheus    struct {
-		Enabled bool
-		Port    int
-		Path    string
-	}
-	Services map[string]*ServiceCheck
+	Prometheus    PrometheusConfig
+	Services      map[string]*ServiceCheck
+}
+
+// PrometheusConfig holds configuration related to prometheus
+type PrometheusConfig struct {
+	Enabled bool
+	Port    int
+	Path    string
 }
 
 const (
@@ -44,7 +47,9 @@ func ReadConfig(conf *Config, configFile string) error {
 
 	if _, err := toml.DecodeFile(configFile, conf); err != nil {
 		errMsg := err.Error()
+
 		var parseErr toml.ParseError
+
 		if errors.As(err, &parseErr) {
 			errMsg = parseErr.ErrorWithPosition()
 		}
@@ -73,6 +78,7 @@ func ReadConfig(conf *Config, configFile string) error {
 	}
 
 	allPrefixes := map[string]bool{}
+
 	for name, s := range conf.Services {
 		// copy service name to ServiceCheck
 		s.name = name
@@ -82,7 +88,7 @@ func ReadConfig(conf *Config, configFile string) error {
 		}
 
 		// validate service
-		if err := conf.validateService(s); err != nil {
+		if err := validateService(s); err != nil {
 			return err
 		}
 
@@ -111,7 +117,7 @@ func ReadConfig(conf *Config, configFile string) error {
 	return nil
 }
 
-func (c Config) validateService(s *ServiceCheck) error {
+func validateService(s *ServiceCheck) error {
 	if s.Command == "" {
 		return fmt.Errorf("service %s has no command set", s.name)
 	}
@@ -143,6 +149,7 @@ func (c Config) validateService(s *ServiceCheck) error {
 func (c Config) GetServices() []*ServiceCheck {
 	sc := make([]*ServiceCheck, len(c.Services))
 	j := 0
+
 	for i := range c.Services {
 		sc[j] = c.Services[i]
 		j++

@@ -9,7 +9,9 @@ import (
 )
 
 func TestServiceCheckPushChannel(t *testing.T) {
-	buf := make(chan (*Action))
+	t.Parallel()
+
+	buf := make(chan *Action)
 	sc := ServiceCheck{
 		disablePrefixCheck: true,
 		name:               "test",
@@ -30,7 +32,7 @@ func TestServiceCheckPushChannel(t *testing.T) {
 	// wait for action on channel
 	action := <-buf
 	assert.Equal(t, ServiceStateUp, action.State)
-	assert.Equal(t, 1, len(action.Prefixes))
+	assert.Len(t, action.Prefixes, 1)
 	assert.Equal(t, sc.prefixes[0], action.Prefixes[0])
 
 	// all of a sudden, the check gives wrong result
