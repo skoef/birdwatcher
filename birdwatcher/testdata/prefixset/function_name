@@ -1,9 +1,0 @@
-function something_else() -> bool
-{
-	return net ~ [
-		1.2.3.4/32,
-		2.3.4.0/26,
-		2001::/64,
-		2002::/48
-	];
-}

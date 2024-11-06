@@ -1,4 +1,0 @@
-function foobar() -> bool
-{
-	return false;
-}

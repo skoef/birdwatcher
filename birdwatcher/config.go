@@ -14,6 +14,7 @@ import (
 type Config struct {
 	ConfigFile    string
 	ReloadCommand string
+	CompatBird213 bool
 	Prometheus    PrometheusConfig
 	Services      map[string]*ServiceCheck
 }

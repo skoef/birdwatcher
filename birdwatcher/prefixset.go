@@ -5,17 +5,9 @@ import (
 	// use embed for embedding the function template
 	_ "embed"
 	"net"
-	"text/template"
 
 	log "github.com/sirupsen/logrus"
 )
-
-//go:embed templates/function.tpl
-var functionTemplate string
-
-var tplFuncs = template.FuncMap{
-	"prefpad": prefixPad,
-}
 
 // PrefixCollection represents prefixsets per function name
 type PrefixCollection map[string]*PrefixSet
@@ -29,6 +21,16 @@ type PrefixSet struct {
 // NewPrefixSet returns a new prefixset with given function name
 func NewPrefixSet(functionName string) *PrefixSet {
 	return &PrefixSet{functionName: functionName}
+}
+
+// FunctionName returns the function name
+func (p PrefixSet) FunctionName() string {
+	return p.functionName
+}
+
+// Prefixes returns the prefixes
+func (p PrefixSet) Prefixes() []net.IPNet {
+	return p.prefixes
 }
 
 // Add adds a prefix to the PrefixSet if it wasn't already in it
@@ -71,42 +73,4 @@ func (p *PrefixSet) Remove(prefix net.IPNet) {
 	}
 
 	pLog.Warn("prefix not found in prefix set, skipping")
-}
-
-// Marshal returns the BIRD function for this prefixset
-func (p PrefixSet) Marshal() string {
-	// init template
-	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionTemplate))
-
-	// init template body
-	tplBody := struct {
-		FunctionName string
-		Prefixes     []net.IPNet
-	}{
-		FunctionName: p.functionName,
-		Prefixes:     p.prefixes,
-	}
-
-	// execute template and return output
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, tplBody); err != nil {
-		log.WithError(err).Error("could not parse template body")
-	}
-
-	return buf.String()
-}
-
-// prefixPad is a helper function for the template
-// basically returns CIDR notations per IPNet, each suffixed with a , except for
-// the last entry
-func prefixPad(x []net.IPNet) []string {
-	pp := make([]string, len(x))
-	for i, p := range x {
-		pp[i] = p.String()
-		if i < len(x)-1 {
-			pp[i] += ","
-		}
-	}
-
-	return pp
 }

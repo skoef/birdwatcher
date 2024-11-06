@@ -1,5 +1,7 @@
 configfile = "/etc/birdwatcher.conf"
 reloadcommand = "/sbin/birdc configure"
+compatbird213 = true
+
 [prometheus]
 enabled = true
 port = 1234

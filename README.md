@@ -90,6 +90,7 @@ Configuration section for global options.
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | configfile    | Path to configuration file that will be generated and should be included in the BIRD configuration. Defaults to **/etc/bird/birdwatcher.conf**. |
 | reloadcommand | Command to invoke to signal BIRD the configuration should be reloaded. Defaults to **/usr/sbin/birdc configure**.                               |
+| compatbird213 | To use birdwatcher with BIRD 2.13 or earlier, enable this flag. It will remove the function return types from the output                        |
 
 ## **[services]**
 
