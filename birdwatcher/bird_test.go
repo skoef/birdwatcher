@@ -17,7 +17,7 @@ func TestWriteBirdConfig(t *testing.T) {
 		t.Parallel()
 
 		// open tempfile
-		tmpFile, err := os.CreateTemp("", "bird_test")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
 		defer os.Remove(tmpFile.Name())
 
@@ -42,7 +42,7 @@ func TestWriteBirdConfig(t *testing.T) {
 		t.Parallel()
 
 		// open tempfile
-		tmpFile, err := os.CreateTemp("", "bird_test")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
 		defer os.Remove(tmpFile.Name())
 
@@ -72,7 +72,7 @@ func TestWriteBirdConfig(t *testing.T) {
 		t.Parallel()
 
 		// open tempfile
-		tmpFile, err := os.CreateTemp("", "bird_test")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
 		defer os.Remove(tmpFile.Name())
 
@@ -117,11 +117,11 @@ func TestBirdCompareFiles(t *testing.T) {
 	t.Parallel()
 
 	// open 2 tempfiles
-	tmpFileA, err := os.CreateTemp("", "bird_test")
+	tmpFileA, err := os.CreateTemp(t.TempDir(), "bird_test")
 	require.NoError(t, err)
 	defer os.Remove(tmpFileA.Name())
 
-	tmpFileB, err := os.CreateTemp("", "bird_test")
+	tmpFileB, err := os.CreateTemp(t.TempDir(), "bird_test")
 	require.NoError(t, err)
 	defer os.Remove(tmpFileB.Name())
 
