@@ -107,24 +107,22 @@ func main() {
 	hc := birdwatcher.NewHealthCheck(config)
 	ready := make(chan bool)
 
-	var status *chan string
-
-	if *useSystemd {
-		// create status update channel for systemd
-		// give it a little buffer so the chances of it blocking the health check
-		// is low
-		s := make(chan string, systemdStatusBufferSize)
-		status = &s
-
-		go func() {
-			for update := range *status {
+	// create status update channel for systemd
+	// give it a little buffer so the chances of it blocking the health check
+	// is low
+	sdStatus := make(chan string, systemdStatusBufferSize)
+	go func() {
+		// make sure we read from the sdStatus channel, regardless if we use
+		// systemd integration or not to prevent the channel from blocking
+		for update := range sdStatus {
+			if *useSystemd {
 				log.Debug("notifying systemd of new status")
 				sdnotify("STATUS=" + update)
 			}
-		}()
-	}
+		}
+	}()
 
-	go hc.Start(config.GetServices(), ready, status)
+	go hc.Start(config.GetServices(), ready, sdStatus)
 	// wait for all health services to have started
 	<-ready
 

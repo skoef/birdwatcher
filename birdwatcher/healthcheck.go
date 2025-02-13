@@ -49,7 +49,7 @@ func NewHealthCheck(c Config) HealthCheck {
 
 // Start starts the process of health checking the services and handling
 // Actions that come from them
-func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status *chan string) {
+func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status chan string) {
 	// copy reference to services
 	h.services = services
 	// create channel for service check to push there events on
@@ -91,7 +91,7 @@ func (h *HealthCheck) didReloadBefore() bool {
 	return h.reloadedBefore
 }
 
-func (h *HealthCheck) handleAction(action *Action, status *chan string) {
+func (h *HealthCheck) handleAction(action *Action, status chan string) {
 	for _, p := range action.Prefixes {
 		switch action.State {
 		case ServiceStateUp:
@@ -111,10 +111,8 @@ func (h *HealthCheck) handleAction(action *Action, status *chan string) {
 	// gather data for a status update
 	su := h.statusUpdate()
 	log.WithField("status", su).Debug("status update")
-	// if status channel is given, send update on it
-	if status != nil {
-		*status <- su
-	}
+	// send update over channel
+	status <- su
 
 	if err := h.applyConfig(h.Config, h.prefixes); err != nil {
 		log.WithError(err).Error("could not apply BIRD config")

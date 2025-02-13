@@ -101,8 +101,15 @@ func TestHealthCheck_handleAction(t *testing.T) {
 	action.Service = &ServiceCheck{
 		FunctionName: "test",
 	}
+
+	sc := make(chan string)
+	go func() {
+		// make sure to read the status channel to prevent blocking handleAction
+		<-sc
+	}()
+
 	// handle service state up
-	hc.handleAction(action, nil)
+	hc.handleAction(action, sc)
 
 	if assert.Contains(t, hc.prefixes, "test") {
 		assert.Len(t, hc.prefixes["test"].prefixes, 2)
@@ -111,7 +118,11 @@ func TestHealthCheck_handleAction(t *testing.T) {
 	// action switches to down for one of the prefixes
 	action.State = ServiceStateDown
 	action.Prefixes = action.Prefixes[1:]
-	hc.handleAction(action, nil)
+	go func() {
+		// make sure to read the status channel to prevent blocking handleAction
+		<-sc
+	}()
+	hc.handleAction(action, sc)
 
 	if assert.Contains(t, hc.prefixes, "test") {
 		assert.Len(t, hc.prefixes["test"].prefixes, 1)
