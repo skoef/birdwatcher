@@ -3,13 +3,11 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -24,6 +22,13 @@ const (
 	systemdStatusBufferSize = 32
 )
 
+// variables filled in by goreleaser during release
+var (
+	version = "devel"
+	commit  = "none"
+	// date    = "unknown"
+)
+
 //nolint:funlen // we should refactor this a bit
 func main() {
 	// initialize logging
@@ -35,23 +40,18 @@ func main() {
 		checkConfig = flag.Bool("check-config", false, "check config file and exit")
 		debugFlag   = flag.Bool("debug", false, "increase loglevel to debug")
 		useSystemd  = flag.Bool("systemd", false, "optimize behavior for running under systemd")
-		version     = flag.Bool("version", false, "show version and exit")
+		versionFlag = flag.Bool("version", false, "show version and exit")
 	)
 
 	flag.Parse()
 
-	versionString := "(devel)"
-	if vcs, ok := debug.ReadBuildInfo(); ok {
-		versionString = vcs.Main.Version
-	}
-
-	if *version {
-		fmt.Printf("birdwatcher, %s\n", versionString)
+	if *versionFlag {
+		fmt.Printf("birdwatcher, %s (%s)\n", version, commit)
 
 		return
 	}
 
-	log.Infof("starting birdwatcher, %s", versionString)
+	log.Infof("starting birdwatcher, %s (%s)", version, commit)
 
 	if *debugFlag {
 		log.SetLevel(log.DebugLevel)
@@ -71,7 +71,7 @@ func main() {
 	if err := birdwatcher.ReadConfig(&config, *configFile); err != nil {
 		// return slightly different message when birdwatcher was invoked with -check-config
 		if *checkConfig {
-			fmt.Printf("Configuration file %s not OK: %s\n", *configFile, errors.Unwrap(err))
+			fmt.Printf("Configuration file %s not OK: %s\n", *configFile, err)
 			os.Exit(1)
 		}
 
@@ -107,24 +107,22 @@ func main() {
 	hc := birdwatcher.NewHealthCheck(config)
 	ready := make(chan bool)
 
-	var status *chan string
-
-	if *useSystemd {
-		// create status update channel for systemd
-		// give it a little buffer so the chances of it blocking the health check
-		// is low
-		s := make(chan string, systemdStatusBufferSize)
-		status = &s
-
-		go func() {
-			for update := range *status {
+	// create status update channel for systemd
+	// give it a little buffer so the chances of it blocking the health check
+	// is low
+	sdStatus := make(chan string, systemdStatusBufferSize)
+	go func() {
+		// make sure we read from the sdStatus channel, regardless if we use
+		// systemd integration or not to prevent the channel from blocking
+		for update := range sdStatus {
+			if *useSystemd {
 				log.Debug("notifying systemd of new status")
 				sdnotify("STATUS=" + update)
 			}
-		}()
-	}
+		}
+	}()
 
-	go hc.Start(config.GetServices(), ready, status)
+	go hc.Start(config.GetServices(), ready, sdStatus)
 	// wait for all health services to have started
 	<-ready
 
