@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -23,6 +22,13 @@ const (
 	systemdStatusBufferSize = 32
 )
 
+// variables filled in by goreleaser during release
+var (
+	version = "devel"
+	commit  = "none"
+	// date    = "unknown"
+)
+
 //nolint:funlen // we should refactor this a bit
 func main() {
 	// initialize logging
@@ -34,23 +40,18 @@ func main() {
 		checkConfig = flag.Bool("check-config", false, "check config file and exit")
 		debugFlag   = flag.Bool("debug", false, "increase loglevel to debug")
 		useSystemd  = flag.Bool("systemd", false, "optimize behavior for running under systemd")
-		version     = flag.Bool("version", false, "show version and exit")
+		versionFlag = flag.Bool("version", false, "show version and exit")
 	)
 
 	flag.Parse()
 
-	versionString := "(devel)"
-	if vcs, ok := debug.ReadBuildInfo(); ok {
-		versionString = vcs.Main.Version
-	}
-
-	if *version {
-		fmt.Printf("birdwatcher, %s\n", versionString)
+	if *versionFlag {
+		fmt.Printf("birdwatcher, %s (%s)\n", version, commit)
 
 		return
 	}
 
-	log.Infof("starting birdwatcher, %s", versionString)
+	log.Infof("starting birdwatcher, %s (%s)", version, commit)
 
 	if *debugFlag {
 		log.SetLevel(log.DebugLevel)

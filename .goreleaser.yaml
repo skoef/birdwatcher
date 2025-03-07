@@ -1,7 +1,14 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
 before:
   hooks:
     - go mod tidy
+
 dist: build
+
 builds:
   - env:
       - CGO_ENABLED=0
@@ -10,12 +17,20 @@ builds:
     goarch:
       - amd64
       - arm64
+
 archives:
-  - format: binary
-checksum:
-  name_template: 'checksums.txt'
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  - formats:
+      - binary
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - '^Merge pull request'
+      - '^Merge branch'
+
 nfpms:
   - package_name: birdwatcher
     homepage: https://github.com/skoef/birdwatcher
@@ -55,11 +70,3 @@ nfpms:
       rpm:
         dependencies:
         - glibc
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-      - '^Merge pull request'
-      - '^Merge branch'
