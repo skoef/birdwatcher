@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -71,7 +70,7 @@ func main() {
 	if err := birdwatcher.ReadConfig(&config, *configFile); err != nil {
 		// return slightly different message when birdwatcher was invoked with -check-config
 		if *checkConfig {
-			fmt.Printf("Configuration file %s not OK: %s\n", *configFile, errors.Unwrap(err))
+			fmt.Printf("Configuration file %s not OK: %s\n", *configFile, err)
 			os.Exit(1)
 		}
 
