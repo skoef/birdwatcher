@@ -14,18 +14,24 @@ type PrefixCollection map[string]*PrefixSet
 
 // PrefixSet represents a list of prefixes alongside a function name
 type PrefixSet struct {
-	prefixes     []net.IPNet
-	functionName string
+	prefixes           []net.IPNet
+	enablePrefixFilter bool
+	functionName       string
 }
 
 // NewPrefixSet returns a new prefixset with given function name
-func NewPrefixSet(functionName string) *PrefixSet {
-	return &PrefixSet{functionName: functionName}
+func NewPrefixSet(functionName string, enablePrefixFilter bool) *PrefixSet {
+	return &PrefixSet{functionName: functionName, prefixes: make([]net.IPNet, 0), enablePrefixFilter: enablePrefixFilter}
 }
 
 // FunctionName returns the function name
 func (p PrefixSet) FunctionName() string {
 	return p.functionName
+}
+
+// EnablePrefixFilter returns if we should filter `net` with the prefixes, or just return true/false
+func (p PrefixSet) EnablePrefixFilter() bool {
+	return p.enablePrefixFilter
 }
 
 // Prefixes returns the prefixes

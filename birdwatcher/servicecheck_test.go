@@ -13,7 +13,6 @@ func TestServiceCheckPushChannel(t *testing.T) {
 
 	buf := make(chan *Action)
 	sc := ServiceCheck{
-		disablePrefixCheck: true,
 		name:               "test",
 		Command:            "/usr/bin/true",
 		Fail:               3,

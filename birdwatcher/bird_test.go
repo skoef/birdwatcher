@@ -22,7 +22,7 @@ func TestWriteBirdConfig(t *testing.T) {
 		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
-		prefixes["match_route"] = NewPrefixSet("match_route")
+		prefixes["match_route"] = NewPrefixSet("match_route", true)
 
 		// write bird config with empty prefix list
 		err = writeBirdConfig(tmpFile.Name(), prefixes, false)
@@ -47,7 +47,7 @@ func TestWriteBirdConfig(t *testing.T) {
 		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
-		prefixes["match_route"] = NewPrefixSet("match_route")
+		prefixes["match_route"] = NewPrefixSet("match_route", true)
 
 		for _, pref := range []string{"1.2.3.4/32", "2.3.4.5/26", "3.4.5.6/24", "4.5.6.7/21"} {
 			_, prf, _ := net.ParseCIDR(pref)
@@ -68,6 +68,36 @@ func TestWriteBirdConfig(t *testing.T) {
 		assert.Equal(t, string(fixture), string(data))
 	})
 
+	t.Run("one prefixset, do not filter", func(t *testing.T) {
+		t.Parallel()
+
+		// open tempfile
+		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
+		require.NoError(t, err)
+		defer os.Remove(tmpFile.Name())
+
+		prefixes := make(PrefixCollection)
+		prefixes["match_route"] = NewPrefixSet("match_route", /* enablePrefixFilter */false  )
+
+		for _, pref := range []string{"1.2.3.4/32", "2.3.4.5/26", "3.4.5.6/24", "4.5.6.7/21"} {
+			_, prf, _ := net.ParseCIDR(pref)
+			prefixes["match_route"].Add(*prf)
+		}
+
+		// write bird config to it
+		err = writeBirdConfig(tmpFile.Name(), prefixes, false)
+		require.NoError(t, err)
+
+		// read data from temp file and compare it to file fixture
+		data, err := os.ReadFile(tmpFile.Name())
+		require.NoError(t, err)
+
+		fixture, err := os.ReadFile("testdata/bird/config_return_true")
+		require.NoError(t, err)
+
+		assert.Equal(t, string(fixture), string(data))
+	})
+
 	t.Run("one prefix, compat", func(t *testing.T) {
 		t.Parallel()
 
@@ -78,7 +108,7 @@ func TestWriteBirdConfig(t *testing.T) {
 
 		prefixes := make(PrefixCollection)
 
-		prefixes["other_function"] = NewPrefixSet("other_function")
+		prefixes["other_function"] = NewPrefixSet("other_function", true)
 		for _, pref := range []string{"5.6.7.8/32", "6.7.8.9/26", "7.8.9.10/24"} {
 			_, prf, _ := net.ParseCIDR(pref)
 			prefixes["other_function"].Add(*prf)
