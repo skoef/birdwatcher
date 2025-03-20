@@ -216,20 +216,20 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 }
 
 func (h *HealthCheck) addPrefix(svc *ServiceCheck, prefix net.IPNet) {
-	h.ensurePrefixSet(svc.FunctionName)
+	h.ensurePrefixSet(svc.FunctionName, svc.enablePrefixFilter)
 
 	h.prefixes[svc.FunctionName].Add(prefix)
 	prefixStateMetric.WithLabelValues(svc.Name(), prefix.String()).Set(1.0)
 }
 
 func (h *HealthCheck) removePrefix(svc *ServiceCheck, prefix net.IPNet) {
-	h.ensurePrefixSet(svc.FunctionName)
+	h.ensurePrefixSet(svc.FunctionName, svc.enablePrefixFilter)
 
 	h.prefixes[svc.FunctionName].Remove(prefix)
 	prefixStateMetric.WithLabelValues(svc.Name(), prefix.String()).Set(0.0)
 }
 
-func (h *HealthCheck) ensurePrefixSet(functionName string) {
+func (h *HealthCheck) ensurePrefixSet(functionName string, enablePrefixFilter bool) {
 	// make sure the top level map is prepared
 	if h.prefixes == nil {
 		h.prefixes = make(PrefixCollection)
@@ -237,7 +237,7 @@ func (h *HealthCheck) ensurePrefixSet(functionName string) {
 
 	// make sure a mapping for this function name exists
 	if _, found := h.prefixes[functionName]; !found {
-		h.prefixes[functionName] = NewPrefixSet(functionName)
+		h.prefixes[functionName] = NewPrefixSet(functionName, enablePrefixFilter)
 	}
 }
 

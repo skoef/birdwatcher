@@ -89,7 +89,7 @@ type ServiceCheck struct {
 	//nolint:revive // these prefixes are converted into net.IPNet
 	prefixes           []net.IPNet
 	state              ServiceState
-	disablePrefixCheck bool
+	enablePrefixFilter bool
 	stopped            chan any
 }
 
