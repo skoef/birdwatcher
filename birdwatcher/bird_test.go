@@ -131,11 +131,15 @@ func TestBirdCompareFiles(t *testing.T) {
 	_, err = tmpFileB.WriteString("test")
 	require.NoError(t, err)
 
-	assert.True(t, compareFiles(tmpFileA.Name(), tmpFileB.Name()))
+	identical, err := compareFiles(tmpFileA.Name(), tmpFileB.Name())
+	require.NoError(t, err)
+	assert.True(t, identical)
 
 	// write something else to one file
 	_, err = tmpFileB.WriteString("test123")
 	require.NoError(t, err)
 
-	assert.False(t, compareFiles(tmpFileA.Name(), tmpFileB.Name()))
+	identical, err = compareFiles(tmpFileA.Name(), tmpFileB.Name())
+	require.NoError(t, err)
+	assert.False(t, identical)
 }

@@ -35,7 +35,12 @@ func updateBirdConfig(config Config, prefixes PrefixCollection) error {
 	}
 
 	// compare new file with original config file
-	if compareFiles(tmpFilename, config.ConfigFile) {
+	identical, err := compareFiles(tmpFilename, config.ConfigFile)
+	if err != nil {
+		return err
+	}
+
+	if identical {
 		return errConfigIdentical
 	}
 
@@ -91,16 +96,20 @@ func prefixPad(x []net.IPNet) []string {
 	return pp
 }
 
-func compareFiles(fileA, fileB string) bool {
+func compareFiles(fileA, fileB string) (bool, error) {
 	data, err := os.ReadFile(fileA)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	datb, err := os.ReadFile(fileB)
-	if err != nil {
-		return false
+	if os.IsNotExist(err) {
+		return false, nil
 	}
 
-	return bytes.Equal(data, datb)
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Equal(data, datb), nil
 }
