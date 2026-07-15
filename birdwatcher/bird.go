@@ -69,9 +69,11 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 	}
 
 	// write data to file
-	_, err = f.Write(buf.Bytes())
+	if _, err = f.Write(buf.Bytes()); err != nil {
+		return err
+	}
 
-	return err
+	return f.Close()
 }
 
 // prefixPad is a helper function for the template
