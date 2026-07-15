@@ -203,6 +203,8 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		cLog.WithField("timeout", reloadTimeout).Warning("reloading timed out")
 
+		h.reloadedBefore = true
+
 		return ctx.Err()
 	}
 
