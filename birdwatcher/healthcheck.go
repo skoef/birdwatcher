@@ -186,7 +186,7 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 
 	// split reload command into command/args assuming the first part is the command
 	// and the rest are the arguments
-	commandArgs := strings.Split(config.ReloadCommand, " ")
+	commandArgs := strings.Fields(config.ReloadCommand)
 
 	// set up command execution within that context
 	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)

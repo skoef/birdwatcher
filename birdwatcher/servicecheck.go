@@ -260,7 +260,7 @@ func (s *ServiceCheck) performCheck() error {
 
 	// split reload command into command/args assuming the first part is the command
 	// and the rest are the arguments
-	commandArgs := strings.Split(s.Command, " ")
+	commandArgs := strings.Fields(s.Command)
 
 	// set up command execution within that context
 	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
