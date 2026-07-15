@@ -191,8 +191,8 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	// set up command execution within that context
 	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
 
-	// get exit code of command
-	output, err := cmd.Output()
+	// get exit code and combined output of command
+	output, err := cmd.CombinedOutput()
 
 	// We want to check the context error to see if the timeout was executed.
 	// The error returned by cmd.Output() will be OS specific based on what
@@ -204,7 +204,7 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	}
 
 	if err != nil {
-		cLog.WithError(err).WithField("output", output).Warning("reloading failed")
+		cLog.WithError(err).WithField("output", string(output)).Warning("reloading failed")
 	} else {
 		cLog.Debug("reloading succeeded")
 

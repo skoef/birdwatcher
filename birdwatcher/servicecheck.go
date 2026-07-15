@@ -266,7 +266,7 @@ func (s *ServiceCheck) performCheck() error {
 	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
 
 	// get exit code of command
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 
 	// We want to check the context error to see if the timeout was executed.
 	// The error returned by cmd.Output() will be OS specific based on what
@@ -276,7 +276,7 @@ func (s *ServiceCheck) performCheck() error {
 	}
 
 	if err != nil {
-		sLog.WithError(err).WithField("output", output).Debug("check output")
+		sLog.WithError(err).WithField("output", string(output)).Debug("check output")
 	}
 
 	return err
