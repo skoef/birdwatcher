@@ -111,8 +111,11 @@ func (h *HealthCheck) handleAction(action *Action, status chan string) {
 	// gather data for a status update
 	su := h.statusUpdate()
 	log.WithField("status", su).Debug("status update")
-	// send update over channel
-	status <- su
+	// send update over channel, non-blocking to avoid stalling the actions loop
+	select {
+	case status <- su:
+	default:
+	}
 
 	if err := h.applyConfig(h.Config, h.prefixes); err != nil {
 		log.WithError(err).Error("could not apply BIRD config")
