@@ -68,6 +68,7 @@ func main() {
 	}).Debug("opening configuration file")
 
 	var config birdwatcher.Config
+
 	if err := birdwatcher.ReadConfig(&config, *configFile); err != nil {
 		// return slightly different message when birdwatcher was invoked with -check-config
 		if *checkConfig {
@@ -123,6 +124,7 @@ func main() {
 	}()
 
 	go hc.Start(config.GetServices(), ready, sdStatus)
+
 	// wait for all health services to have started
 	<-ready
 

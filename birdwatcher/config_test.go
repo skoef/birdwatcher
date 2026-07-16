@@ -1,11 +1,11 @@
 package birdwatcher
 
 import (
-	"regexp"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig(t *testing.T) {
@@ -48,7 +48,7 @@ func TestConfig(t *testing.T) {
 
 		err := ReadConfig(&Config{}, "testdata/config/service_nocommand")
 		if assert.Error(t, err) {
-			assert.Regexp(t, regexp.MustCompile("^service .+ has no command set"), err.Error())
+			assert.Regexp(t, "^service .+ has no command set", err.Error())
 		}
 	})
 
@@ -58,7 +58,7 @@ func TestConfig(t *testing.T) {
 
 		err := ReadConfig(&Config{}, "testdata/config/service_noprefixes")
 		if assert.Error(t, err) {
-			assert.Regexp(t, regexp.MustCompile("^service .+ has no prefixes set"), err.Error())
+			assert.Regexp(t, "^service .+ has no prefixes set", err.Error())
 		}
 	})
 
@@ -68,7 +68,7 @@ func TestConfig(t *testing.T) {
 
 		err := ReadConfig(&Config{}, "testdata/config/service_invalidprefix")
 		if assert.Error(t, err) {
-			assert.Regexp(t, regexp.MustCompile("^could not parse prefix for service"), err.Error())
+			assert.Regexp(t, "^could not parse prefix for service", err.Error())
 		}
 	})
 
@@ -78,7 +78,7 @@ func TestConfig(t *testing.T) {
 
 		err := ReadConfig(&Config{}, "testdata/config/service_duplicateprefix")
 		if assert.Error(t, err) {
-			assert.Regexp(t, regexp.MustCompile("^duplicate prefix .+ found"), err.Error())
+			assert.Regexp(t, "^duplicate prefix .+ found", err.Error())
 		}
 	})
 
@@ -89,9 +89,7 @@ func TestConfig(t *testing.T) {
 		testConf := Config{}
 
 		err := ReadConfig(&testConf, "testdata/config/minimal")
-		if !assert.NoError(t, err) {
-			return
-		}
+		require.NoError(t, err)
 
 		assert.Equal(t, defaultConfigFile, testConf.ConfigFile)
 		assert.Equal(t, defaultReloadCommand, testConf.ReloadCommand)
@@ -124,9 +122,7 @@ func TestConfig(t *testing.T) {
 		testConf := Config{}
 
 		err := ReadConfig(&testConf, "testdata/config/overridden")
-		if !assert.NoError(t, err) {
-			return
-		}
+		require.NoError(t, err)
 
 		assert.Equal(t, "/etc/birdwatcher.conf", testConf.ConfigFile)
 		assert.Equal(t, "/sbin/birdc configure", testConf.ReloadCommand)
@@ -157,6 +153,7 @@ func TestConfig(t *testing.T) {
 					assert.Equal(t, 20, svc.Rise)
 					assert.Equal(t, 30, svc.Fail)
 					assert.Equal(t, time.Second*40, svc.Timeout)
+
 				case "bar":
 				default:
 					assert.Fail(t, "unexpected service name", "service name: %s", svc.name)

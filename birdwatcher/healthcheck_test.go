@@ -14,7 +14,7 @@ func TestHealthCheck_addPrefix(t *testing.T) {
 	hc := HealthCheck{}
 	assert.Nil(t, hc.prefixes)
 
-	// adding a prefix should initialise the prefixcollection
+	// adding a prefix should initialize the prefixcollection
 	// and add the prefix under the right prefixset
 	_, prefix, _ := net.ParseCIDR("1.2.3.0/24")
 	hc.addPrefix(&ServiceCheck{name: "svc1", FunctionName: "foo"}, *prefix)
@@ -46,7 +46,7 @@ func TestHealthCheck_removePrefix(t *testing.T) {
 
 	assert.InEpsilon(t, 1.0, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")), 0.00001)
 
-	// this should initialise the prefixset but won't remove any prefixes
+	// this should initialize the prefixset but won't remove any prefixes
 	svc2 := &ServiceCheck{name: "svc2", FunctionName: "bar"}
 	hc.removePrefix(svc2, *prefix)
 	assert.Len(t, hc.prefixes, 2)
@@ -94,6 +94,7 @@ func TestHealthCheck_handleAction(t *testing.T) {
 	}
 
 	var prefix *net.IPNet
+
 	_, prefix, _ = net.ParseCIDR("1.2.3.0/24")
 	action.Prefixes[0] = *prefix
 	_, prefix, _ = net.ParseCIDR("2.3.4.0/24")
@@ -118,10 +119,12 @@ func TestHealthCheck_handleAction(t *testing.T) {
 	// action switches to down for one of the prefixes
 	action.State = ServiceStateDown
 	action.Prefixes = action.Prefixes[1:]
+
 	go func() {
 		// make sure to read the status channel to prevent blocking handleAction
 		<-sc
 	}()
+
 	hc.handleAction(action, sc)
 
 	if assert.Contains(t, hc.prefixes, "test") {
@@ -138,8 +141,10 @@ func TestHealthCheck_statusUpdate(t *testing.T) {
 	}}
 
 	assert.Equal(t, "all 2 service(s) down", hc.statusUpdate())
+
 	hc.services[0].state = ServiceStateUp
 	assert.Equal(t, "service(s) bar down, 1 service(s) up", hc.statusUpdate())
+
 	hc.services[1].state = ServiceStateUp
 	assert.Equal(t, "all 2 service(s) up", hc.statusUpdate())
 }

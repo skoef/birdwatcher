@@ -33,6 +33,7 @@ type HealthCheck struct {
 // NewHealthCheck returns a HealthCheck with given configuration
 func NewHealthCheck(c Config) HealthCheck {
 	h := HealthCheck{}
+
 	h.Config = c
 
 	return h
@@ -65,8 +66,10 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status 
 		select {
 		case <-h.stopped:
 			log.Debug("received stop signal")
+
 			// we're done
 			return
+
 		case action := <-h.actions:
 			log.WithFields(log.Fields{
 				"service": action.Service.name,
@@ -102,6 +105,7 @@ func (h *HealthCheck) handleAction(action *Action, status chan string) {
 	// gather data for a status update
 	su := h.statusUpdate()
 	log.WithField("status", su).Debug("status update")
+
 	// send update over channel, non-blocking to avoid stalling the actions loop
 	select {
 	case status <- su:

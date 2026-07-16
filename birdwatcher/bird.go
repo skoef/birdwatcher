@@ -56,7 +56,8 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+
+	defer func() { _ = f.Close() }()
 
 	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionsTemplate))
 
@@ -69,6 +70,7 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 	}
 
 	var buf bytes.Buffer
+
 	if err := tmpl.Execute(&buf, tplBody); err != nil {
 		return err
 	}

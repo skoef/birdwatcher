@@ -44,9 +44,10 @@ type ServiceCheck struct {
 // Start starts the process of health checking its service and sends actions to
 // the action channel when service state changes
 //
-//nolint:funlen // we should refactor this a bit
+
 func (s *ServiceCheck) Start(action *chan *Action) {
 	s.stopped = make(chan any)
+
 	ticker := time.NewTicker(time.Second * time.Duration(s.Interval))
 
 	var err error
@@ -74,6 +75,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 		select {
 		case <-s.stopped:
 			sLog.Debug("received stop signal")
+
 			// we're done
 			return
 
@@ -130,6 +132,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 
 				// update success metric
 				serviceFailMetric.WithLabelValues(s.name).Inc()
+
 				// if this was a timeout, increment that counter as well
 				if errors.Is(err, context.DeadlineExceeded) {
 					serviceTimeoutMetric.WithLabelValues(s.name).Inc()
