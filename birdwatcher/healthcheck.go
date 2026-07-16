@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,13 +18,6 @@ const (
 	// timeout when reloading bird
 	reloadTimeout = 10 * time.Second
 )
-
-var prefixStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
-	Namespace: "birdwatcher",
-	Subsystem: "prefix",
-	Name:      "state",
-	Help:      "Current health state per prefix",
-}, []string{"service", "prefix"})
 
 // HealthCheck -- struct holding everything needed for the never-ending health
 // check loop
