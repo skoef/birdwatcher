@@ -26,13 +26,13 @@ For example: `10` should become `"10s"` in your config files.
 
 ## Example usage
 
-This simple example configures a single service, runs `haproxy_check.sh` every second and manages 2 prefixes based on the exit code of the script:
+This simple example configures a single service, runs `haproxy_check.sh` every second and manages one prefix based on the exit code of the script:
 
 ```toml
 [services]
   [services."foo"]
   command = "/usr/bin/haproxy_check.sh"
-  prefixes = ["192.168.0.0/24", "fc00::/7"]
+  prefixes = ["192.168.0.0/24"]
 
 ```
 
@@ -43,8 +43,7 @@ Sample output in `/etc/bird/birdwatcher.conf` if `haproxy_check.sh` checks out w
 function match_route() -> bool
 {
 	return net ~ [
-		192.168.0.0/24,
-		fc00::/7
+		192.168.0.0/24
 	];
 }
 ```
@@ -61,10 +60,48 @@ function match_route() -> bool
 
 and reconfigures BIRD by given `reloadcommand`. Obviously, if you have multiple services being checked by birdwatcher, only the prefixes of that particular service would be removed from the list in `match_route`.
 
-Integration in BIRD is a matter of including `/etc/bird/birdwatcher.conf` (or whatever you configured at `configfile`) in the configuration for BIRD and use it in a protocol like this:
+### Multiple prefixes (IPv4 + IPv6)
 
-```text
-protocol bgp my_bgp_proto {
+When announcing both IPv4 and IPv6 prefixes, you **must** split them into separate services with different function names. BIRD does not allow mixed IPv4/IPv6 prefixes in a single BGP protocol block, so birdwatcher generates separate functions for each address family:
+
+```toml
+[services]
+  # IPv4-only service
+  [services."haproxy-4"]
+  command = "/usr/bin/haproxy_check.sh"
+  prefixes = ["10.0.0.1/32"]
+
+  # IPv6-only service (note the different functionname!)
+  [services."haproxy-6"]
+  command = "/usr/bin/haproxy_check.sh"
+  functionname = "match_route_ipv6"
+  prefixes = ["fd00::1/128"]
+```
+
+This generates two separate functions in `/etc/bird/birdwatcher.conf`:
+
+```
+# DO NOT EDIT MANUALLY
+function match_route() -> bool
+{
+	return net ~ [
+		10.0.0.1/32
+	];
+}
+function match_route_ipv6() -> bool
+{
+	return net ~ [
+		fd00::1/128
+	];
+}
+```
+
+In BIRD, use the corresponding function in each address family's protocol block:
+
+```
+include "/etc/bird/birdwatcher.conf";
+
+protocol bgp my_bgp_v4 {
   local as 12345;
   neighbor 1.2.3.4 as 23435;
   ...
@@ -72,14 +109,24 @@ protocol bgp my_bgp_proto {
     ...
     export where match_route();
   }
+}
+
+protocol bgp my_bgp_v6 {
+  local as 12345;
+  neighbor 1.2.3.4 as 23435;
   ...
   ipv6 {
     ...
-    export where match_route();
+    export where match_route_ipv6();
   }
 }
 ```
 
+**Important:**
+- Each service must contain **only** IPv4 or **only** IPv6 prefixes
+- Each service needs a **unique `functionname`** (defaults to `match_route`)
+- The generated function name must match the one referenced in your BIRD `export where` filter
+- Place `include "/etc/bird/birdwatcher.conf";` at the **top** of your bird.conf — before any protocol definitions that reference the functions
 ## Command-line flags
 
 | flag            | description                                                                                                                                            |
