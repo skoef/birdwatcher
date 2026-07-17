@@ -10,6 +10,10 @@ const (
 	prometheusSubsystemService = "service"
 	prometheusSubsystemPrefix  = "prefix"
 	prometheusNameState        = "state"
+
+	prometheusLabelService = "service"
+	prometheusLabelCommand = "command"
+	prometheusLabelPrefix  = "prefix"
 )
 
 var (
@@ -18,54 +22,54 @@ var (
 		Subsystem: prometheusSubsystemService,
 		Name:      "info",
 		Help:      "Services and their configuration",
-	}, []string{"service", "function_name", "command", "interval", "timeout", "rise", "fail"})
+	}, []string{prometheusLabelService, "function_name", prometheusLabelCommand, "interval", "timeout", "rise", "fail"})
 
 	serviceCheckDuration = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemService,
 		Name:      "check_duration",
 		Help:      "Service check duration in milliseconds",
-	}, []string{"service"})
+	}, []string{prometheusLabelService})
 
 	serviceStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemService,
 		Name:      prometheusNameState,
 		Help:      "Current health state per service",
-	}, []string{"service"})
+	}, []string{prometheusLabelService})
 
 	serviceTransitionMetric = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemService,
 		Name:      "transition_total",
 		Help:      "Number of transitions per service",
-	}, []string{"service"})
+	}, []string{prometheusLabelService})
 
 	serviceSuccessMetric = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemService,
 		Name:      "success_total",
 		Help:      "Number of successful probes per service",
-	}, []string{"service"})
+	}, []string{prometheusLabelService})
 
 	serviceFailMetric = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemService,
 		Name:      "fail_total",
 		Help:      "Number of failed probes per service",
-	}, []string{"service"})
+	}, []string{prometheusLabelService})
 
 	serviceTimeoutMetric = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemService,
 		Name:      "timeout_total",
 		Help:      "Number of timed out probes per service",
-	}, []string{"service"})
+	}, []string{prometheusLabelService})
 
 	prefixStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystemPrefix,
 		Name:      prometheusNameState,
 		Help:      "Current health state per prefix",
-	}, []string{"service", "prefix"})
+	}, []string{prometheusLabelService, prometheusLabelPrefix})
 )

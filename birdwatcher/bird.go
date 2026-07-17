@@ -49,16 +49,6 @@ func updateBirdConfig(config Config, prefixes PrefixCollection) error {
 }
 
 func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 bool) error {
-	var err error
-
-	// open file
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = f.Close() }()
-
 	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionsTemplate))
 
 	tplBody := struct {
@@ -75,7 +65,14 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 		return err
 	}
 
-	// write data to file
+	// open file and write rendered config
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+
+	defer func() { _ = f.Close() }()
+
 	if _, err = f.Write(buf.Bytes()); err != nil {
 		return err
 	}

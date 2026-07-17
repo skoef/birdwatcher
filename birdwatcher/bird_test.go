@@ -20,8 +20,6 @@ func TestWriteBirdConfig(t *testing.T) {
 		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
 
-		defer os.Remove(tmpFile.Name())
-
 		prefixes := make(PrefixCollection)
 
 		prefixes["match_route"] = NewPrefixSet("match_route")
@@ -46,8 +44,6 @@ func TestWriteBirdConfig(t *testing.T) {
 		// open tempfile
 		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
-
-		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
 
@@ -78,8 +74,6 @@ func TestWriteBirdConfig(t *testing.T) {
 		// open tempfile
 		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
-
-		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
 
@@ -127,12 +121,8 @@ func TestBirdCompareFiles(t *testing.T) {
 	tmpFileA, err := os.CreateTemp(t.TempDir(), "bird_test")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFileA.Name())
-
 	tmpFileB, err := os.CreateTemp(t.TempDir(), "bird_test")
 	require.NoError(t, err)
-
-	defer os.Remove(tmpFileB.Name())
 
 	// write same string to both files
 	_, err = tmpFileA.WriteString("test")

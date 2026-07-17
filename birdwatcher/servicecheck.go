@@ -43,8 +43,6 @@ type ServiceCheck struct {
 
 // Start starts the process of health checking its service and sends actions to
 // the action channel when service state changes
-//
-
 func (s *ServiceCheck) Start(action *chan *Action) {
 	s.stopped = make(chan any)
 
@@ -56,19 +54,19 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 	downCounter := 0
 
 	sLog := log.WithFields(log.Fields{
-		"service": s.name,
-		"command": s.Command,
+		prometheusLabelService: s.name,
+		prometheusLabelCommand: s.Command,
 	})
 
 	// set service info metric
 	serviceInfoMetric.With(prometheus.Labels{
-		"service":       s.name,
-		"function_name": s.FunctionName,
-		"command":       s.Command,
-		"interval":      strconv.Itoa(s.Interval),
-		"timeout":       s.Timeout.String(),
-		"rise":          strconv.Itoa(s.Rise),
-		"fail":          strconv.Itoa(s.Fail),
+		prometheusLabelService: s.name,
+		"function_name":        s.FunctionName,
+		prometheusLabelCommand: s.Command,
+		"interval":             strconv.Itoa(s.Interval),
+		"timeout":              s.Timeout.String(),
+		"rise":                 strconv.Itoa(s.Rise),
+		"fail":                 strconv.Itoa(s.Fail),
 	}).Set(1.0)
 
 	for {
@@ -176,7 +174,7 @@ func (s *ServiceCheck) Stop() {
 	s.stopped <- true
 
 	log.WithFields(log.Fields{
-		"service": s.name,
+		prometheusLabelService: s.name,
 	}).Debug("stopped service")
 }
 
@@ -200,8 +198,8 @@ func (s *ServiceCheck) getAction() *Action {
 
 func (s *ServiceCheck) performCheck() error {
 	sLog := log.WithFields(log.Fields{
-		"service": s.name,
-		"command": s.Command,
+		prometheusLabelService: s.name,
+		prometheusLabelCommand: s.Command,
 	})
 	sLog.Debug("performing check")
 

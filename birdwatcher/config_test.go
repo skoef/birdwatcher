@@ -8,10 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfig(t *testing.T) {
+func TestConfigErrors(t *testing.T) {
 	t.Parallel()
 
-	// test check for valid file
 	t.Run("config not found", func(t *testing.T) {
 		t.Parallel()
 
@@ -21,7 +20,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// read invalid TOML from file and check if it gets detected
 	t.Run("invalid toml", func(t *testing.T) {
 		t.Parallel()
 
@@ -32,7 +30,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// check for error when no services are defined
 	t.Run("no services defined", func(t *testing.T) {
 		t.Parallel()
 
@@ -42,7 +39,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// check for error for service with no command
 	t.Run("service no command", func(t *testing.T) {
 		t.Parallel()
 
@@ -52,7 +48,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// check for error for service with no prefixes
 	t.Run("service no prefixes", func(t *testing.T) {
 		t.Parallel()
 
@@ -62,7 +57,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// check for error for service with invalid prefix
 	t.Run("invalid prefix", func(t *testing.T) {
 		t.Parallel()
 
@@ -72,7 +66,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// check for error for service with duplicate prefix
 	t.Run("duplicate prefix", func(t *testing.T) {
 		t.Parallel()
 
@@ -81,8 +74,11 @@ func TestConfig(t *testing.T) {
 			assert.Regexp(t, "^duplicate prefix .+ found", err.Error())
 		}
 	})
+}
 
-	// read minimal valid config and check defaults
+func TestConfigValid(t *testing.T) {
+	t.Parallel()
+
 	t.Run("minimal valid config", func(t *testing.T) {
 		t.Parallel()
 
@@ -108,14 +104,12 @@ func TestConfig(t *testing.T) {
 			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
 		}
 
-		// check GetServices result
 		svcs := testConf.GetServices()
 		if assert.Len(t, svcs, 1) {
 			assert.Equal(t, "foo", svcs[0].name)
 		}
 	})
 
-	// read overridden TOML file and check if overrides are picked up
 	t.Run("all options overridden", func(t *testing.T) {
 		t.Parallel()
 
@@ -142,10 +136,8 @@ func TestConfig(t *testing.T) {
 			assert.Equal(t, "fc00::/7", testConf.Services["bar"].prefixes[1].String())
 		}
 
-		// check GetServices result
 		svcs := testConf.GetServices()
 		if assert.Len(t, svcs, 2) {
-			// order of the services is not guaranteed
 			for _, svc := range svcs {
 				switch svc.name {
 				case "foo":

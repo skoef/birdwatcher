@@ -53,7 +53,7 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status 
 	// we'll need this later to stop them
 	for _, s := range services {
 		log.WithFields(log.Fields{
-			"service": s.Name(),
+			prometheusLabelService: s.Name(),
 		}).Info("starting service check")
 
 		go s.Start(&h.actions)
@@ -72,8 +72,8 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status 
 
 		case action := <-h.actions:
 			log.WithFields(log.Fields{
-				"service": action.Service.name,
-				"state":   action.State,
+				prometheusLabelService: action.Service.name,
+				"state":                action.State,
 			}).Debug("incoming action")
 
 			h.handleAction(action, status)
@@ -94,8 +94,8 @@ func (h *HealthCheck) handleAction(action *Action, status chan string) {
 			h.removePrefix(action.Service, p)
 		default:
 			log.WithFields(log.Fields{
-				"state":   action.State,
-				"service": action.Service.name,
+				"state":                action.State,
+				prometheusLabelService: action.Service.name,
 			}).Warning("unhandled state received")
 
 			return
@@ -174,7 +174,7 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	}
 
 	cLog = log.WithFields(log.Fields{
-		"command": config.ReloadCommand,
+		prometheusLabelCommand: config.ReloadCommand,
 	})
 	cLog.Info("prefixes updated, reloading")
 
@@ -246,7 +246,7 @@ func (h *HealthCheck) Stop() {
 	// signal each service to stop
 	for _, s := range h.services {
 		log.WithFields(log.Fields{
-			"service": s.Name(),
+			prometheusLabelService: s.Name(),
 		}).Info("stopping service check")
 
 		s.Stop()
