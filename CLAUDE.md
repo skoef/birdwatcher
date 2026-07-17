@@ -75,7 +75,7 @@ The program has a single main goroutine flow:
 - The first reload always happens even if the generated config is identical to the existing file (`reloadedBefore` flag), ensuring BIRD is in sync on startup.
 - The `CompatBird213` flag removes `-> bool` return types from generated BIRD functions for compatibility with BIRD ≤ 2.13.
 - The `functionname` config key allows multiple services to share or split a single `match_route`-style function in BIRD.
-- Prometheus metrics are registered at package init via `promauto` — all metrics live in `servicecheck.go` and `healthcheck.go`.
+- Prometheus metrics are registered at package init via `promauto` — all metrics live in `birdwatcher/metrics.go`.
 
 ### Config format (TOML)
 

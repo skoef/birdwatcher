@@ -10,59 +10,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-)
-
-var (
-	serviceInfoMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "info",
-		Help:      "Services and their configuration",
-	}, []string{"service", "function_name", "command", "interval", "timeout", "rise", "fail"})
-
-	serviceCheckDuration = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "check_duration",
-		Help:      "Service check duration in milliseconds",
-	}, []string{"service"})
-
-	serviceStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "state",
-		Help:      "Current health state per service",
-	}, []string{"service"})
-
-	serviceTransitionMetric = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "transition_total",
-		Help:      "Number of transitions per service",
-	}, []string{"service"})
-
-	serviceSuccessMetric = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "success_total",
-		Help:      "Number of successful probes per service",
-	}, []string{"service"})
-
-	serviceFailMetric = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "fail_total",
-		Help:      "Number of failed probes per service",
-	}, []string{"service"})
-
-	serviceTimeoutMetric = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "birdwatcher",
-		Subsystem: "service",
-		Name:      "timeout_total",
-		Help:      "Number of timed out probes per service",
-	}, []string{"service"})
 )
 
 // ServiceState represents the state the service is considered to be in
@@ -95,10 +43,9 @@ type ServiceCheck struct {
 
 // Start starts the process of health checking its service and sends actions to
 // the action channel when service state changes
-//
-//nolint:funlen // we should refactor this a bit
 func (s *ServiceCheck) Start(action *chan *Action) {
 	s.stopped = make(chan any)
+
 	ticker := time.NewTicker(time.Second * time.Duration(s.Interval))
 
 	var err error
@@ -107,25 +54,26 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 	downCounter := 0
 
 	sLog := log.WithFields(log.Fields{
-		"service": s.name,
-		"command": s.Command,
+		prometheusLabelService: s.name,
+		prometheusLabelCommand: s.Command,
 	})
 
 	// set service info metric
 	serviceInfoMetric.With(prometheus.Labels{
-		"service":       s.name,
-		"function_name": s.FunctionName,
-		"command":       s.Command,
-		"interval":      strconv.Itoa(s.Interval),
-		"timeout":       s.Timeout.String(),
-		"rise":          strconv.Itoa(s.Rise),
-		"fail":          strconv.Itoa(s.Fail),
+		prometheusLabelService: s.name,
+		"function_name":        s.FunctionName,
+		prometheusLabelCommand: s.Command,
+		"interval":             strconv.Itoa(s.Interval),
+		"timeout":              s.Timeout.String(),
+		"rise":                 strconv.Itoa(s.Rise),
+		"fail":                 strconv.Itoa(s.Fail),
 	}).Set(1.0)
 
 	for {
 		select {
 		case <-s.stopped:
 			sLog.Debug("received stop signal")
+
 			// we're done
 			return
 
@@ -182,6 +130,7 @@ func (s *ServiceCheck) Start(action *chan *Action) {
 
 				// update success metric
 				serviceFailMetric.WithLabelValues(s.name).Inc()
+
 				// if this was a timeout, increment that counter as well
 				if errors.Is(err, context.DeadlineExceeded) {
 					serviceTimeoutMetric.WithLabelValues(s.name).Inc()
@@ -225,7 +174,7 @@ func (s *ServiceCheck) Stop() {
 	s.stopped <- true
 
 	log.WithFields(log.Fields{
-		"service": s.name,
+		prometheusLabelService: s.name,
 	}).Debug("stopped service")
 }
 
@@ -249,8 +198,8 @@ func (s *ServiceCheck) getAction() *Action {
 
 func (s *ServiceCheck) performCheck() error {
 	sLog := log.WithFields(log.Fields{
-		"service": s.name,
-		"command": s.Command,
+		prometheusLabelService: s.name,
+		prometheusLabelCommand: s.Command,
 	})
 	sLog.Debug("performing check")
 
@@ -260,13 +209,13 @@ func (s *ServiceCheck) performCheck() error {
 
 	// split reload command into command/args assuming the first part is the command
 	// and the rest are the arguments
-	commandArgs := strings.Split(s.Command, " ")
+	commandArgs := strings.Fields(s.Command)
 
 	// set up command execution within that context
 	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
 
 	// get exit code of command
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 
 	// We want to check the context error to see if the timeout was executed.
 	// The error returned by cmd.Output() will be OS specific based on what
@@ -276,7 +225,7 @@ func (s *ServiceCheck) performCheck() error {
 	}
 
 	if err != nil {
-		sLog.WithError(err).WithField("output", output).Debug("check output")
+		sLog.WithError(err).WithField("output", string(output)).Debug("check output")
 	}
 
 	return err
