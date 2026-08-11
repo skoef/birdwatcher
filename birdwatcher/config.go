@@ -111,6 +111,9 @@ func ReadConfig(conf *Config, configFile string) error {
 			allPrefixes[ipn.String()] = true
 		}
 
+		// TODO: How to make it true by default, if toml.DecodeFile set boolean to false by default ?
+		s.enablePrefixFilter = true
+
 		// map name to each search
 		conf.Services[name] = s
 	}

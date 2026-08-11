@@ -10,7 +10,7 @@ import (
 func TestPrefixSet_Add(t *testing.T) {
 	t.Parallel()
 
-	p := NewPrefixSet("foobar")
+	p := NewPrefixSet("foobar", true)
 	// should be empty
 	assert.Empty(t, p.prefixes)
 
@@ -44,7 +44,7 @@ func TestPrefixSet_Add(t *testing.T) {
 func TestPrefixSet_Remove(t *testing.T) {
 	t.Parallel()
 
-	p := NewPrefixSet("foobar")
+	p := NewPrefixSet("foobar", true)
 
 	// add some prefixes
 	prefixes := make([]net.IPNet, 4)
