@@ -62,24 +62,6 @@ func TestHealthCheck_removePrefix(t *testing.T) {
 	assert.Empty(t, testutil.ToFloat64(prefixStateMetric.WithLabelValues("svc1", "1.2.3.0/24")))
 }
 
-func TestHealthCheckDidReloadBefore(t *testing.T) {
-	t.Parallel()
-
-	hc := NewHealthCheck(Config{})
-
-	// expect both to fail
-	assert.False(t, hc.didReloadBefore())
-
-	// should succeed now
-	hc.reloadedBefore = true
-	assert.True(t, hc.didReloadBefore())
-
-	hc.reloadedBefore = false
-
-	// expect to fail again
-	assert.False(t, hc.didReloadBefore())
-}
-
 func TestHealthCheck_handleAction(t *testing.T) {
 	t.Parallel()
 

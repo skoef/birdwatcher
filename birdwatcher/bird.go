@@ -52,7 +52,9 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 		return err
 	}
 
-	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionsTemplate))
+	tmpl := template.Must(template.New("func").
+		Funcs(tplFuncs).
+		Parse(functionsTemplate))
 
 	tplBody := struct {
 		Collections   PrefixCollection
@@ -63,7 +65,7 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, tplBody); err != nil {
+	if err = tmpl.Execute(&buf, tplBody); err != nil {
 		return err
 	}
 

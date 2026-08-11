@@ -139,10 +139,6 @@ func validateService(s *ServiceCheck) error {
 		s.Rise = defaultServiceRise
 	}
 
-	if len(s.Prefixes) == 0 {
-		return fmt.Errorf("service %s has no prefixes set", s.name)
-	}
-
 	return nil
 }
 

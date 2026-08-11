@@ -16,11 +16,15 @@ type PrefixCollection map[string]*PrefixSet
 type PrefixSet struct {
 	prefixes     []net.IPNet
 	functionName string
+	healthy      bool
 }
 
 // NewPrefixSet returns a new prefixset with given function name
-func NewPrefixSet(functionName string) *PrefixSet {
-	return &PrefixSet{functionName: functionName}
+func NewPrefixSet(svc *ServiceCheck) *PrefixSet {
+	return &PrefixSet{
+		functionName: svc.FunctionName,
+		healthy:      svc.IsUp(),
+	}
 }
 
 // FunctionName returns the function name
@@ -31,6 +35,10 @@ func (p PrefixSet) FunctionName() string {
 // Prefixes returns the prefixes
 func (p PrefixSet) Prefixes() []net.IPNet {
 	return p.prefixes
+}
+
+func (p PrefixSet) Healthy() bool {
+	return p.healthy
 }
 
 // Add adds a prefix to the PrefixSet if it wasn't already in it

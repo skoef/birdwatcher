@@ -9,7 +9,11 @@ function {{.FunctionName}}(){{- if not $.CompatBird213 }} -> bool{{- end }}
 {{- end }}
 	];
 {{- else }}
+{{- if .Healthy }}
+	return true;
+{{- else }}
 	return false;
+{{- end }}
 {{- end }}
 }
 {{- end }}

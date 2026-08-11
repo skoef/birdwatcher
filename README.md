@@ -172,7 +172,7 @@ Each service under this section can have the following settings:
 | timeout      | Time in which the check command should complete. Afterwards it will be handled as if the check command failed. Defaults to **10s**, format following that of [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration).              |
 | fail         | The amount of times the check command should fail before the service is considered to be down. Defaults to **1**                                                                                                                         |
 | rise         | The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**                                                                                                                        |
-| prefixes     | Array of prefixes, mixed IPv4 and IPv6. At least 1 prefix is **required** per service                                                                                                                                                    |
+| prefixes     | Array of prefixes, mixed IPv4 and IPv6. When no prefixes are given, the resulting filter won't match any addresses but just return **true** or **false**.                                                                                |
 
 ## **[prometheus]**
 

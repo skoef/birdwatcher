@@ -13,7 +13,7 @@ import (
 func TestWriteBirdConfig(t *testing.T) {
 	t.Parallel()
 
-	t.Run("empty config", func(t *testing.T) {
+	t.Run("filter down", func(t *testing.T) {
 		t.Parallel()
 
 		// open tempfile
@@ -21,10 +21,11 @@ func TestWriteBirdConfig(t *testing.T) {
 		require.NoError(t, err)
 		defer os.Remove(tmpFile.Name())
 
+		// no prefixes, service unhealthy
 		prefixes := make(PrefixCollection)
-		prefixes["match_route"] = NewPrefixSet("match_route")
+		prefixes["match_route"] = NewPrefixSet(&ServiceCheck{FunctionName: "match_route"})
 
-		// write bird config with empty prefix list
+		// write bird config with empty prefix list and unhealthy
 		err = writeBirdConfig(tmpFile.Name(), prefixes, false)
 		require.NoError(t, err)
 
@@ -32,7 +33,20 @@ func TestWriteBirdConfig(t *testing.T) {
 		data, err := os.ReadFile(tmpFile.Name())
 		require.NoError(t, err)
 
-		fixture, err := os.ReadFile("testdata/bird/config_empty")
+		fixture, err := os.ReadFile("testdata/bird/filter_down")
+		require.NoError(t, err)
+
+		assert.Equal(t, string(fixture), string(data))
+
+		// switch to compat mode and do it again
+		err = writeBirdConfig(tmpFile.Name(), prefixes, true)
+		require.NoError(t, err)
+
+		// read data from temp file and compare it to file fixture
+		data, err = os.ReadFile(tmpFile.Name())
+		require.NoError(t, err)
+
+		fixture, err = os.ReadFile("testdata/bird/filter_down_compat")
 		require.NoError(t, err)
 
 		assert.Equal(t, string(fixture), string(data))
@@ -46,8 +60,9 @@ func TestWriteBirdConfig(t *testing.T) {
 		require.NoError(t, err)
 		defer os.Remove(tmpFile.Name())
 
+		// one healthy prefix, service assumed healthy
 		prefixes := make(PrefixCollection)
-		prefixes["match_route"] = NewPrefixSet("match_route")
+		prefixes["match_route"] = NewPrefixSet(&ServiceCheck{FunctionName: "match_route"})
 
 		for _, pref := range []string{"1.2.3.4/32", "2.3.4.5/26", "3.4.5.6/24", "4.5.6.7/21"} {
 			_, prf, _ := net.ParseCIDR(pref)
@@ -62,13 +77,27 @@ func TestWriteBirdConfig(t *testing.T) {
 		data, err := os.ReadFile(tmpFile.Name())
 		require.NoError(t, err)
 
-		fixture, err := os.ReadFile("testdata/bird/config")
+		fixture, err := os.ReadFile("testdata/bird/filter_one_prefix")
+		require.NoError(t, err)
+
+		assert.Equal(t, string(fixture), string(data))
+
+		// switch to compat mode and do it again
+		// write bird config to it
+		err = writeBirdConfig(tmpFile.Name(), prefixes, true)
+		require.NoError(t, err)
+
+		// read data from temp file and compare it to file fixture
+		data, err = os.ReadFile(tmpFile.Name())
+		require.NoError(t, err)
+
+		fixture, err = os.ReadFile("testdata/bird/filter_one_prefix_compat")
 		require.NoError(t, err)
 
 		assert.Equal(t, string(fixture), string(data))
 	})
 
-	t.Run("one prefix, compat", func(t *testing.T) {
+	t.Run("filter up", func(t *testing.T) {
 		t.Parallel()
 
 		// open tempfile
@@ -76,23 +105,36 @@ func TestWriteBirdConfig(t *testing.T) {
 		require.NoError(t, err)
 		defer os.Remove(tmpFile.Name())
 
+		// no healthy prefixes, service explicitly healthy
 		prefixes := make(PrefixCollection)
-
-		prefixes["other_function"] = NewPrefixSet("other_function")
-		for _, pref := range []string{"5.6.7.8/32", "6.7.8.9/26", "7.8.9.10/24"} {
-			_, prf, _ := net.ParseCIDR(pref)
-			prefixes["other_function"].Add(*prf)
-		}
+		prefixes["match_route"] = NewPrefixSet(&ServiceCheck{
+			FunctionName: "match_route",
+			state:        ServiceStateUp,
+		})
 
 		// write bird config to it
-		err = writeBirdConfig(tmpFile.Name(), prefixes, true)
+		err = writeBirdConfig(tmpFile.Name(), prefixes, false)
 		require.NoError(t, err)
 
 		// read data from temp file and compare it to file fixture
 		data, err := os.ReadFile(tmpFile.Name())
 		require.NoError(t, err)
 
-		fixture, err := os.ReadFile("testdata/bird/config_compat")
+		fixture, err := os.ReadFile("testdata/bird/filter_up")
+		require.NoError(t, err)
+
+		assert.Equal(t, string(fixture), string(data))
+
+		// switch to compat mode and do it again
+		// write bird config to it
+		err = writeBirdConfig(tmpFile.Name(), prefixes, true)
+		require.NoError(t, err)
+
+		// read data from temp file and compare it to file fixture
+		data, err = os.ReadFile(tmpFile.Name())
+		require.NoError(t, err)
+
+		fixture, err = os.ReadFile("testdata/bird/filter_up_compat")
 		require.NoError(t, err)
 
 		assert.Equal(t, string(fixture), string(data))

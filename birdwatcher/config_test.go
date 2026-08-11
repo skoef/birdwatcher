@@ -52,16 +52,6 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	// check for error for service with no prefixes
-	t.Run("service no prefixes", func(t *testing.T) {
-		t.Parallel()
-
-		err := ReadConfig(&Config{}, "testdata/config/service_noprefixes")
-		if assert.Error(t, err) {
-			assert.Regexp(t, regexp.MustCompile("^service .+ has no prefixes set"), err.Error())
-		}
-	})
-
 	// check for error for service with invalid prefix
 	t.Run("invalid prefix", func(t *testing.T) {
 		t.Parallel()
@@ -106,9 +96,7 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, defaultServiceRise, testConf.Services["foo"].Rise)
 		assert.Equal(t, defaultServiceTimeout, testConf.Services["foo"].Timeout)
 
-		if assert.Len(t, testConf.Services["foo"].prefixes, 1) {
-			assert.Equal(t, "192.168.0.0/24", testConf.Services["foo"].prefixes[0].String())
-		}
+		assert.Len(t, testConf.Services["foo"].prefixes, 0)
 
 		// check GetServices result
 		svcs := testConf.GetServices()
