@@ -52,6 +52,7 @@ func TestPrefixSet_Remove(t *testing.T) {
 	for i, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
 		_, prf, _ := net.ParseCIDR(pref)
 		p.Add(*prf)
+
 		prefixes[i] = *prf
 	}
 

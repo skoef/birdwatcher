@@ -19,9 +19,9 @@ func TestWriteBirdConfig(t *testing.T) {
 		// open tempfile
 		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
+
 		prefixes["match_route"] = NewPrefixSet("match_route")
 
 		// write bird config with empty prefix list
@@ -44,9 +44,9 @@ func TestWriteBirdConfig(t *testing.T) {
 		// open tempfile
 		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
+
 		prefixes["match_route"] = NewPrefixSet("match_route")
 
 		for _, pref := range []string{"1.2.3.4/32", "2.3.4.5/26", "3.4.5.6/24", "4.5.6.7/21"} {
@@ -74,11 +74,11 @@ func TestWriteBirdConfig(t *testing.T) {
 		// open tempfile
 		tmpFile, err := os.CreateTemp(t.TempDir(), "bird_test")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
 
 		prefixes := make(PrefixCollection)
 
 		prefixes["other_function"] = NewPrefixSet("other_function")
+
 		for _, pref := range []string{"5.6.7.8/32", "6.7.8.9/26", "7.8.9.10/24"} {
 			_, prf, _ := net.ParseCIDR(pref)
 			prefixes["other_function"].Add(*prf)
@@ -106,6 +106,7 @@ func TestPrefixPad(t *testing.T) {
 
 	for i, pref := range []string{"1.2.3.0/24", "2.3.4.0/24", "3.4.5.0/24", "3.4.5.0/26"} {
 		_, prf, _ := net.ParseCIDR(pref)
+
 		prefixes[i] = *prf
 	}
 
@@ -119,23 +120,26 @@ func TestBirdCompareFiles(t *testing.T) {
 	// open 2 tempfiles
 	tmpFileA, err := os.CreateTemp(t.TempDir(), "bird_test")
 	require.NoError(t, err)
-	defer os.Remove(tmpFileA.Name())
 
 	tmpFileB, err := os.CreateTemp(t.TempDir(), "bird_test")
 	require.NoError(t, err)
-	defer os.Remove(tmpFileB.Name())
 
 	// write same string to both files
 	_, err = tmpFileA.WriteString("test")
 	require.NoError(t, err)
+
 	_, err = tmpFileB.WriteString("test")
 	require.NoError(t, err)
 
-	assert.True(t, compareFiles(tmpFileA.Name(), tmpFileB.Name()))
+	identical, err := compareFiles(tmpFileA.Name(), tmpFileB.Name())
+	require.NoError(t, err)
+	assert.True(t, identical)
 
 	// write something else to one file
 	_, err = tmpFileB.WriteString("test123")
 	require.NoError(t, err)
 
-	assert.False(t, compareFiles(tmpFileA.Name(), tmpFileB.Name()))
+	identical, err = compareFiles(tmpFileA.Name(), tmpFileB.Name())
+	require.NoError(t, err)
+	assert.False(t, identical)
 }

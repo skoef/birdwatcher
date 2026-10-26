@@ -36,7 +36,7 @@ func (p PrefixSet) Prefixes() []net.IPNet {
 // Add adds a prefix to the PrefixSet if it wasn't already in it
 func (p *PrefixSet) Add(prefix net.IPNet) {
 	pLog := log.WithFields(log.Fields{
-		"prefix": prefix,
+		prometheusLabelPrefix: prefix,
 	})
 	pLog.Debug("adding prefix to prefix set")
 
@@ -57,7 +57,7 @@ func (p *PrefixSet) Add(prefix net.IPNet) {
 // Remove removes a prefix from the PrefixSet
 func (p *PrefixSet) Remove(prefix net.IPNet) {
 	pLog := log.WithFields(log.Fields{
-		"prefix": prefix,
+		prometheusLabelPrefix: prefix,
 	})
 	pLog.Debug("removing prefix from prefix set")
 

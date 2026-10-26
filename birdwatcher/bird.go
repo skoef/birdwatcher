@@ -35,7 +35,12 @@ func updateBirdConfig(config Config, prefixes PrefixCollection) error {
 	}
 
 	// compare new file with original config file
-	if compareFiles(tmpFilename, config.ConfigFile) {
+	identical, err := compareFiles(tmpFilename, config.ConfigFile)
+	if err != nil {
+		return err
+	}
+
+	if identical {
 		return errConfigIdentical
 	}
 
@@ -44,14 +49,6 @@ func updateBirdConfig(config Config, prefixes PrefixCollection) error {
 }
 
 func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 bool) error {
-	var err error
-
-	// open file
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-
 	tmpl := template.Must(template.New("func").Funcs(tplFuncs).Parse(functionsTemplate))
 
 	tplBody := struct {
@@ -63,14 +60,24 @@ func writeBirdConfig(filename string, prefixes PrefixCollection, compatBird213 b
 	}
 
 	var buf bytes.Buffer
+
 	if err := tmpl.Execute(&buf, tplBody); err != nil {
 		return err
 	}
 
-	// write data to file
-	_, err = f.Write(buf.Bytes())
+	// open file and write rendered config
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
 
-	return err
+	defer func() { _ = f.Close() }()
+
+	if _, err = f.Write(buf.Bytes()); err != nil {
+		return err
+	}
+
+	return f.Close()
 }
 
 // prefixPad is a helper function for the template
@@ -88,16 +95,20 @@ func prefixPad(x []net.IPNet) []string {
 	return pp
 }
 
-func compareFiles(fileA, fileB string) bool {
+func compareFiles(fileA, fileB string) (bool, error) {
 	data, err := os.ReadFile(fileA)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	datb, err := os.ReadFile(fileB)
-	if err != nil {
-		return false
+	if os.IsNotExist(err) {
+		return false, nil
 	}
 
-	return bytes.Equal(data, datb)
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Equal(data, datb), nil
 }

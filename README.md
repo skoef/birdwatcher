@@ -26,13 +26,13 @@ For example: `10` should become `"10s"` in your config files.
 
 ## Example usage
 
-This simple example configures a single service, runs `haproxy_check.sh` every second and manages one prefix based on the exit code of the script:
+This simple example configures a single service, runs `haproxy_check.sh` every second and manages 2 IPv4 prefixes based on the exit code of the script:
 
 ```toml
 [services]
   [services."foo"]
   command = "/usr/bin/haproxy_check.sh"
-  prefixes = ["192.168.0.0/24"]
+  prefixes = ["192.168.0.0/24", "192.168.1.0/24"]
 
 ```
 
@@ -43,7 +43,8 @@ Sample output in `/etc/bird/birdwatcher.conf` if `haproxy_check.sh` checks out w
 function match_route() -> bool
 {
 	return net ~ [
-		192.168.0.0/24
+		192.168.0.0/24,
+		192.168.1.0/24
 	];
 }
 ```
@@ -60,45 +61,46 @@ function match_route() -> bool
 
 and reconfigures BIRD by given `reloadcommand`. Obviously, if you have multiple services being checked by birdwatcher, only the prefixes of that particular service would be removed from the list in `match_route`.
 
-### Multiple prefixes (IPv4 + IPv6)
+### Announcing both IPv4 and IPv6 prefixes
 
-When announcing both IPv4 and IPv6 prefixes, you **must** split them into separate services with different function names. BIRD does not allow mixed IPv4/IPv6 prefixes in a single BGP protocol block, so birdwatcher generates separate functions for each address family:
+BIRD does not allow IPv4 and IPv6 prefixes to be mixed in the same prefix set (this _was_ allowed in BIRD 2.0.7 and earlier). To announce both address families, define two services with different `functionname` values, keeping the prefixes within each service to a single address family:
 
 ```toml
 [services]
   # IPv4-only service
-  [services."haproxy-4"]
+  [services."haproxy-v4"]
   command = "/usr/bin/haproxy_check.sh"
-  prefixes = ["10.0.0.1/32"]
+  prefixes = ["192.168.0.0/24"]
+  functionname = "match_route_v4"
 
-  # IPv6-only service (note the different functionname!)
-  [services."haproxy-6"]
+  # IPv6-only service
+  [services."haproxy-v6"]
   command = "/usr/bin/haproxy_check.sh"
-  functionname = "match_route_ipv6"
-  prefixes = ["fd00::1/128"]
+  prefixes = ["fc00::/7"]
+  functionname = "match_route_v6"
 ```
 
 This generates two separate functions in `/etc/bird/birdwatcher.conf`:
 
-```
+```text
 # DO NOT EDIT MANUALLY
-function match_route() -> bool
+function match_route_v4() -> bool
 {
 	return net ~ [
-		10.0.0.1/32
+		192.168.0.0/24
 	];
 }
-function match_route_ipv6() -> bool
+function match_route_v6() -> bool
 {
 	return net ~ [
-		fd00::1/128
+		fc00::/7
 	];
 }
 ```
 
-In BIRD, use the corresponding function in each address family's protocol block:
+In BIRD, use the corresponding function in each protocol's address family block:
 
-```
+```text
 include "/etc/bird/birdwatcher.conf";
 
 protocol bgp my_bgp_v4 {
@@ -107,35 +109,37 @@ protocol bgp my_bgp_v4 {
   ...
   ipv4 {
     ...
-    export where match_route();
+    export where match_route_v4();
   }
 }
 
 protocol bgp my_bgp_v6 {
   local as 12345;
-  neighbor 1.2.3.4 as 23435;
+  neighbor ::1 as 23435;
   ...
   ipv6 {
     ...
-    export where match_route_ipv6();
+    export where match_route_v6();
   }
 }
 ```
 
 **Important:**
+
 - Each service must contain **only** IPv4 or **only** IPv6 prefixes
 - Each service needs a **unique `functionname`** (defaults to `match_route`)
 - The generated function name must match the one referenced in your BIRD `export where` filter
-- Place `include "/etc/bird/birdwatcher.conf";` at the **top** of your bird.conf — before any protocol definitions that reference the functions
+- Make sure to `include "/etc/bird/birdwatcher.conf"` **before** any protocol definitions that reference the generated functions
+
 ## Command-line flags
 
-| flag            | description                                                                                                                                            |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `-config`       | Path to birdwatcher's own TOML config file. Defaults to **/etc/birdwatcher.conf**.                                                                      |
-| `-check-config` | Validate the config file and exit. Combine with `-debug` to also dump the parsed config as JSON.                                                        |
-| `-debug`        | Increase the log level to debug.                                                                                                                        |
-| `-systemd`      | Optimize behavior for running under systemd: drop log timestamps (journald adds its own) and send `sd_notify` readiness, status and stopping updates.   |
-| `-version`      | Print the version and exit.                                                                                                                             |
+| flag            | description                                                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-config`       | Path to birdwatcher's own TOML config file. Defaults to **/etc/birdwatcher.conf**.                                                                    |
+| `-check-config` | Validate the config file and exit. Combine with `-debug` to also dump the parsed config as JSON.                                                      |
+| `-debug`        | Increase the log level to debug.                                                                                                                      |
+| `-systemd`      | Optimize behavior for running under systemd: drop log timestamps (journald adds its own) and send `sd_notify` readiness, status and stopping updates. |
+| `-version`      | Print the version and exit.                                                                                                                           |
 
 Note the two distinct paths: the `-config` flag points to birdwatcher's own TOML
 config (default **/etc/birdwatcher.conf**), while the `configfile` key _inside_
@@ -164,15 +168,15 @@ Configuration section for global options.
 
 Each service under this section can have the following settings:
 
-| key          | description                                                                                                                                                                                                                              |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| command      | Command that will be periodically run to check if the service should be considered up or down. The result is based on the exit code: a non-zero exit codes makes birdwatcher decide the service is down, otherwise it's up. **Required** |
-| functionname | Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.                                                                   |
-| interval     | The interval in seconds at which birdwatcher will check the service. Defaults to **1**                                                                                                                                                   |
-| timeout      | Time in which the check command should complete. Afterwards it will be handled as if the check command failed. Defaults to **10s**, format following that of [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration).              |
-| fail         | The amount of times the check command should fail before the service is considered to be down. Defaults to **1**                                                                                                                         |
-| rise         | The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**                                                                                                                        |
-| prefixes     | Array of prefixes, mixed IPv4 and IPv6. At least 1 prefix is **required** per service                                                                                                                                                    |
+| key          | description                                                                                                                                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| command      | Command that will be periodically run to check if the service should be considered up or down. The result is based on the exit code: a non-zero exit codes makes birdwatcher decide the service is down, otherwise it's up. **Required**                                  |
+| functionname | Specify the name of the function birdwatcher will generate. You can use this function name to use in your protocol export filter in BIRD. Defaults to **match_route**.                                                                                                    |
+| interval     | The interval in seconds at which birdwatcher will check the service. Defaults to **1**                                                                                                                                                                                    |
+| timeout      | Time in which the check command should complete. Afterwards it will be handled as if the check command failed. Defaults to **10s**, format following that of [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration).                                               |
+| fail         | The amount of times the check command should fail before the service is considered to be down. Defaults to **1**                                                                                                                                                          |
+| rise         | The amount of times the check command should succeed before the service is considered to be up. Defaults to **1**                                                                                                                                                         |
+| prefixes     | Array of prefixes. All prefixes in a service must be the same address family (IPv4 or IPv6) — BIRD does not allow mixing them in one prefix set. Use separate services with different `functionname` values for dual-stack. At least 1 prefix is **required** per service |
 
 ## **[prometheus]**
 

@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,13 +18,6 @@ const (
 	// timeout when reloading bird
 	reloadTimeout = 10 * time.Second
 )
-
-var prefixStateMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
-	Namespace: "birdwatcher",
-	Subsystem: "prefix",
-	Name:      "state",
-	Help:      "Current health state per prefix",
-}, []string{"service", "prefix"})
 
 // HealthCheck -- struct holding everything needed for the never-ending health
 // check loop
@@ -42,6 +33,7 @@ type HealthCheck struct {
 // NewHealthCheck returns a HealthCheck with given configuration
 func NewHealthCheck(c Config) HealthCheck {
 	h := HealthCheck{}
+
 	h.Config = c
 
 	return h
@@ -61,7 +53,7 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status 
 	// we'll need this later to stop them
 	for _, s := range services {
 		log.WithFields(log.Fields{
-			"service": s.Name(),
+			prometheusLabelService: s.Name(),
 		}).Info("starting service check")
 
 		go s.Start(&h.actions)
@@ -74,12 +66,14 @@ func (h *HealthCheck) Start(services []*ServiceCheck, ready chan<- bool, status 
 		select {
 		case <-h.stopped:
 			log.Debug("received stop signal")
+
 			// we're done
 			return
+
 		case action := <-h.actions:
 			log.WithFields(log.Fields{
-				"service": action.Service.name,
-				"state":   action.State,
+				prometheusLabelService: action.Service.name,
+				"state":                action.State,
 			}).Debug("incoming action")
 
 			h.handleAction(action, status)
@@ -100,8 +94,8 @@ func (h *HealthCheck) handleAction(action *Action, status chan string) {
 			h.removePrefix(action.Service, p)
 		default:
 			log.WithFields(log.Fields{
-				"state":   action.State,
-				"service": action.Service.name,
+				"state":                action.State,
+				prometheusLabelService: action.Service.name,
 			}).Warning("unhandled state received")
 
 			return
@@ -111,8 +105,12 @@ func (h *HealthCheck) handleAction(action *Action, status chan string) {
 	// gather data for a status update
 	su := h.statusUpdate()
 	log.WithField("status", su).Debug("status update")
-	// send update over channel
-	status <- su
+
+	// send update over channel, non-blocking to avoid stalling the actions loop
+	select {
+	case status <- su:
+	default:
+	}
 
 	if err := h.applyConfig(h.Config, h.prefixes); err != nil {
 		log.WithError(err).Error("could not apply BIRD config")
@@ -176,7 +174,7 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	}
 
 	cLog = log.WithFields(log.Fields{
-		"command": config.ReloadCommand,
+		prometheusLabelCommand: config.ReloadCommand,
 	})
 	cLog.Info("prefixes updated, reloading")
 
@@ -186,13 +184,13 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 
 	// split reload command into command/args assuming the first part is the command
 	// and the rest are the arguments
-	commandArgs := strings.Split(config.ReloadCommand, " ")
+	commandArgs := strings.Fields(config.ReloadCommand)
 
 	// set up command execution within that context
 	cmd := exec.CommandContext(ctx, commandArgs[0], commandArgs[1:]...)
 
-	// get exit code of command
-	output, err := cmd.Output()
+	// get exit code and combined output of command
+	output, err := cmd.CombinedOutput()
 
 	// We want to check the context error to see if the timeout was executed.
 	// The error returned by cmd.Output() will be OS specific based on what
@@ -200,11 +198,13 @@ func (h *HealthCheck) applyConfig(config Config, prefixes PrefixCollection) erro
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		cLog.WithField("timeout", reloadTimeout).Warning("reloading timed out")
 
+		h.reloadedBefore = true
+
 		return ctx.Err()
 	}
 
 	if err != nil {
-		cLog.WithError(err).WithField("output", output).Warning("reloading failed")
+		cLog.WithError(err).WithField("output", string(output)).Warning("reloading failed")
 	} else {
 		cLog.Debug("reloading succeeded")
 
@@ -246,7 +246,7 @@ func (h *HealthCheck) Stop() {
 	// signal each service to stop
 	for _, s := range h.services {
 		log.WithFields(log.Fields{
-			"service": s.Name(),
+			prometheusLabelService: s.Name(),
 		}).Info("stopping service check")
 
 		s.Stop()

@@ -27,6 +27,7 @@ func TestServiceCheckPushChannel(t *testing.T) {
 
 	// start the check
 	go sc.Start(&buf)
+
 	defer sc.Stop()
 
 	// wait for action on channel
