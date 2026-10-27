@@ -214,11 +214,6 @@ linters:
         - io.Copy(os.Stdout)
         - crypto/rand.Read
 
-    gosimple:
-      # Sxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
-      # Default: ["*"]
-      checks: ["all"]
-
     govet:
       # Disable all analyzers.
       # Default: false
@@ -283,7 +278,7 @@ linters:
       # ).
       # Run `GL_DEBUG=govet golangci-lint run --enable=govet` to see default, all available analyzers, and enabled analyzers.
       # Default: []
-      disable:
+      disable: []
 
       # Settings per analyzer.
       settings:
@@ -345,9 +340,6 @@ linters:
       # See the default value of `exclude` to get the builtin exclusions.
       # Default: true
       use-builtin-exclusions: true
-      # Ignore *_test.go files.
-      # Default: false
-      ignore-test: false
 
     bidichk:
       # The following configurations check for all mentioned invisible unicode runes.
@@ -382,7 +374,7 @@ linters:
         - "a"
       # Keywords used to ignore detection.
       # Default: []
-      ignore:
+      ignore: []
 
     errchkjson:
       # With check-error-free-encoding set to true, errchkjson does warn about errors
@@ -421,43 +413,19 @@ linters:
       comparison: true
       # Allowed errors.
       # Default: []
-      allowed-errors:
+      allowed-errors: []
       # Allowed error "wildcards".
       # Default: []
-      allowed-errors-wildcard:
+      allowed-errors-wildcard: []
 
     exhaustive:
       # Program elements to check for exhaustiveness.
       # Default: [ switch ]
       check:
         - switch
-        - map
-      # Check switch statements in generated files also.
-      # Default: false
-      check-generated: false
-      # Presence of "default" case in switch statements satisfies exhaustiveness,
-      # even if all enum members are not listed.
-      # Default: false
+        - mapliteral
       default-signifies-exhaustive: true
-      # Enum members matching the supplied regex do not have to be listed in
-      # switch statements to satisfy exhaustiveness.
-      # Default: ""
-      ignore-enum-members: ""
-      # Enum types matching the supplied regex do not have to be listed in
-      # switch statements to satisfy exhaustiveness.
-      # Default: ""
-      ignore-enum-types: ""
-      # Consider enums only in package scopes, not in inner scopes.
-      # Default: false
       package-scope-only: false
-      # Only run exhaustive check on switches with "//exhaustive:enforce" comment.
-      # Default: false
-      explicit-exhaustive-switch: false
-      # Only run exhaustive check on map literals with "//exhaustive:enforce" comment.
-      # Default: false
-      explicit-exhaustive-map: false
-      # Switch statement requires default case even if exhaustive.
-      # Default: false
       default-case-required: false
 
     funlen:
@@ -472,28 +440,6 @@ linters:
       # Ignore comments when counting lines.
       # Default false
       ignore-comments: true
-
-    gci:
-      # Section configuration to compare against.
-      # Section names are case-insensitive and may contain parameters in ().
-      # The default order of sections is `standard > default > custom > blank > dot > alias > localmodule`,
-      # If `custom-order` is `true`, it follows the order of `sections` option.
-      # Default: ["standard", "default"]
-      sections:
-        - standard # Standard section: captures all standard packages.
-        - default # Default section: contains all imports that could not be matched to another section type.
-        - prefix(gitlab.com/maxem) # Custom section: groups all imports with the specified Prefix.
-        - localmodule # Local module section: contains all local packages. This section is not present unless explicitly enabled.
-      # Skip generated files.
-      # Default: true
-      skip-generated: true
-      # Enable custom order of sections.
-      # If `true`, make the section order the same as the order of `sections`.
-      # Default: false
-      custom-order: true
-      # Drops lexical ordering for custom sections.
-      # Default: false
-      no-lex-order: false
 
     gocognit:
       # Minimal code complexity to report.
@@ -527,7 +473,7 @@ linters:
       ignore-calls: true
       # Exclude strings matching the given regular expression.
       # Default: ""
-      ignore-string-values: "%w"
+      ignore-string-values: ["%w"]
 
     gocritic:
       # Disable all checks.
@@ -646,14 +592,14 @@ linters:
       enable-all: false
       # Which checks should be disabled; can't be combined with 'enabled-checks'.
       # Default: []
-      disabled-checks:
+      disabled-checks: []
 
       # Enable multiple checks by tags in addition to default checks.
       # Run `GL_DEBUG=gocritic golangci-lint run --enable=gocritic` to see all tags and checks.
       # See https://github.com/go-critic/go-critic#usage -> section "Tags".
       # Default: []
-      enabled-tags:
-      disabled-tags:
+      enabled-tags: []
+      disabled-tags: []
 
       # Settings passed to gocritic.
       # The settings key is the name of a supported gocritic checker.
@@ -720,24 +666,6 @@ linters:
         - BUG
         - FIXME
 
-    gofmt:
-      # Simplify code: gofmt with `-s` option.
-      # Default: true
-      simplify: true
-      # Apply the rewrite rules to the source before reformatting.
-      # https://pkg.go.dev/cmd/gofmt
-      # Default: []
-      rewrite-rules:
-
-    gofumpt:
-      # Module path which contains the source code being formatted.
-      # Default: ""
-      module-path: ""
-
-      # Choose whether to use the extra rules.
-      # Default: false
-      extra-rules: false
-
     gosec:
       # To select a subset of rules to run.
       # Available rules: https://github.com/securego/gosec#available-rules
@@ -790,13 +718,6 @@ linters:
         - G307 # [RETIRED] Poor file permissions used when creating a file with os.Create
 
 
-      # Exclude generated files
-      # Default: false
-      exclude-generated: true
-
-      # Filter out the issues with a lower severity than the given value.
-      # Valid options are: low, medium, high.
-      # Default: low
       severity: low
 
       # Filter out the issues with a lower confidence than the given value.
@@ -927,7 +848,7 @@ linters:
       # - `generic` for generic interfaces added in go 1.18
       #
       # Default: []
-      reject:
+      reject: []
 
     lll:
       # Max line length, lines longer will be reported.
@@ -950,24 +871,12 @@ linters:
       always: false
 
     misspell:
-      # Correct spellings using locale preferences for US or UK.
-      # Setting locale to US will correct the British spelling of 'colour' to 'color'.
-      # Default is to use a neutral variety of English.
-      locale:
-      # Typos to ignore.
-      # Should be in lower case.
-      # Default: []
-      ignore-words:
+      ignore-rules: []
       # Extra word corrections.
       # `typo` and `correction` should only contain letters.
       # The words are case-insensitive.
       # Default: []
-      extra-words:
-      # Mode of the analysis:
-      # - default: checks all the file content.
-      # - restricted: checks only comments.
-      # Default: ""
-      mode:
+      extra-words: []
 
     nakedret:
       # Make an issue if func has more lines of code than this setting, and it has naked returns.
@@ -1048,10 +957,10 @@ linters:
     predeclared:
       # Comma-separated list of predeclared identifiers to not report on.
       # Default: ""
-      ignore: ""
+      ignore: []
       # Include method names and field names (i.e., qualified names) in checks.
       # Default: false
-      q: false
+      qualified-name: false
 
     promlinter:
       # Promlinter cannot infer all metrics name in static analysis.
@@ -1060,14 +969,14 @@ linters:
       strict: false
       # Please refer to https://github.com/yeya24/promlinter#usage for detailed usage.
       # Default: []
-      disabled-linters:
+      disabled-linters: []
 
     protogetter:
       # Skip files generated by specified generators from the checking.
       # Checks only the file's initial comment, which must follow the format: "// Code generated by <generator-name>".
       # Files generated by protoc-gen-go, protoc-gen-go-grpc, and protoc-gen-grpc-gateway are always excluded automatically.
       # Default: []
-      skip-generated-by:
+      skip-generated-by: []
       # Skip files matching the specified glob pattern from the checking.
       # Default: []
       skip-files:
@@ -1086,14 +995,6 @@ linters:
       # Defaults to unlimited.
       # max-open-files:
 
-      # When set to false, ignores files with "GENERATED" header, similar to golint.
-      # See https://github.com/mgechev/revive#available-rules for details.
-      # Default: false
-      ignore-generated-header: true
-
-      # Sets the default severity.
-      # See https://github.com/mgechev/revive#configuration
-      # Default: warning
       severity: warning
 
       # Enable all available rules.
@@ -1397,7 +1298,7 @@ linters:
     rowserrcheck:
       # database/sql is always checked
       # Default: []
-      packages:
+      packages: []
 
     sloglint:
       # Enforce using attributes only (overrides no-mixed-args, incompatible with kv-only).
@@ -1460,13 +1361,13 @@ linters:
       # if found in the call path to a returned error.
       # https://github.com/jjti/go-spancheck#ignore-check-signatures
       # Default: []
-      ignore-check-signatures:
+      ignore-check-signatures: []
       # A list of regexes for additional function signatures that create spans.
       # This is useful if you have a utility method to create spans.
       # Each entry should be of the form `<regex>:<telemetry-type>`, where `telemetry-type` can be `opentelemetry` or `opencensus`.
       # https://github.com/jjti/go-spancheck#extra-start-span-signatures
       # Default: []
-      extra-start-span-signatures:
+      extra-start-span-signatures: []
 
     testifylint:
       # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
@@ -1625,6 +1526,79 @@ linters:
       enable:
         - err
 
+  exclusions:
+    # Excluding configuration per-path, per-linter, per-text and per-source
+    rules:
+      # Exclude some linters from running on tests files.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - dupl
+          - funlen
+          - gocognit
+          - gosec
+          - lll
+          - maintidx
+          - nlreturn
+          - revive
+          - wsl_v5
+
+      # Run some linter only for test files by excluding its issues for everything else.
+      - path-except: _test\.go
+        linters:
+          - paralleltest
+          - testifylint
+          - thelper
+          - tparallel
+
+      # Exclude known linters from partially hard-vendored code,
+      # which is impossible to exclude via `nolint` comments.
+      # `/` will be replaced by current OS file path separator to properly work on Windows.
+      # - path: internal/hmac/
+      #   text: "weak cryptographic primitive"
+      #   linters:
+      #     - gosec
+
+      # Exclude some `staticcheck` messages.
+      # - linters:
+      #     - staticcheck
+      #   text: "SA9003:"
+
+      # Exclude `lll` issues for long lines with `go:generate`.
+      - linters:
+          - lll
+        source: "^//go:generate "
+
+      # Exclude govet shadow for err variable.
+      - text: 'shadow: declaration of "err" shadows declaration at'
+        linters: [govet]
+
+    # Which dirs to exclude: issues from them won't be reported.
+    # Can use regexp here: `generated.*`, regexp is applied on full path,
+    # including the path prefix if one is set.
+    # "/" will be replaced by current OS file path separator to properly work on Windows.
+    # Default: []
+    paths:
+      - mocks
+
+    # Enables exclude of directories:
+    # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
+    # Default: true
+    presets:
+      - "common-false-positives"
+
+    # Mode of the generated files analysis.
+    #
+    # - `strict`: sources are excluded by following strictly the Go generated file convention.
+    #    Source files that have lines matching only the following regular expression will be excluded: `^// Code generated .* DO NOT EDIT\.$`
+    #    This line must appear before the first non-comment, non-blank text in the file.
+    #    https://go.dev/s/generatedcode
+    # - `lax`: sources are excluded if they contain lines `autogenerated file`, `code generated`, `do not edit`, etc.
+    # - `disable`: disable the generated files exclusion.
+    #
+    # Default: lax
+    generated: lax
+
 issues:
   # Maximum issues count per one linter.
   # Set to 0 to disable.
@@ -1660,79 +1634,6 @@ issues:
   # Fix found issues (if it's supported by the linter).
   # Default: false
   fix: true
-
-exclusions:
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  rules:
-    # Exclude some linters from running on tests files.
-    - path: _test\.go
-      linters:
-        - errcheck
-        - dupl
-        - funlen
-        - gocognit
-        - gosec
-        - lll
-        - maintidx
-        - nlreturn
-        - revive
-        - wsl_v5
-
-    # Run some linter only for test files by excluding its issues for everything else.
-    - path-except: _test\.go
-      linters:
-        - paralleltest
-        - testifylint
-        - thelper
-        - tparallel
-
-    # Exclude known linters from partially hard-vendored code,
-    # which is impossible to exclude via `nolint` comments.
-    # `/` will be replaced by current OS file path separator to properly work on Windows.
-    # - path: internal/hmac/
-    #   text: "weak cryptographic primitive"
-    #   linters:
-    #     - gosec
-
-    # Exclude some `staticcheck` messages.
-    # - linters:
-    #     - staticcheck
-    #   text: "SA9003:"
-
-    # Exclude `lll` issues for long lines with `go:generate`.
-    - linters:
-        - lll
-      source: "^//go:generate "
-
-    # Exclude govet shadow for err variable.
-    - text: 'shadow: declaration of "err" shadows declaration at'
-      linters: [govet]
-
-  # Which dirs to exclude: issues from them won't be reported.
-  # Can use regexp here: `generated.*`, regexp is applied on full path,
-  # including the path prefix if one is set.
-  # "/" will be replaced by current OS file path separator to properly work on Windows.
-  # Default: []
-  paths:
-    - mocks
-
-  # Enables exclude of directories:
-  # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
-  # Default: true
-  presets:
-    - "common-false-positives"
-
-  # Mode of the generated files analysis.
-  #
-  # - `strict`: sources are excluded by following strictly the Go generated file convention.
-  #    Source files that have lines matching only the following regular expression will be excluded: `^// Code generated .* DO NOT EDIT\.$`
-  #    This line must appear before the first non-comment, non-blank text in the file.
-  #    https://go.dev/s/generatedcode
-  # - `lax`: sources are excluded if they contain lines `autogenerated file`, `code generated`, `do not edit`, etc.
-  # - `disable`: disable the generated files exclusion.
-  #
-  # Default: lax
-  generated: lax
 
 severity:
   # Set the default severity for issues.

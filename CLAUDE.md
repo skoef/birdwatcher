@@ -18,6 +18,8 @@ golangci-lint run
 
 Fix all lint errors before considering the change complete.
 
+Keep the Go version in `go.mod` (the `go` directive) in sync with the `go-version` used in the GitHub Actions workflows (`.github/workflows/go.yml` and `.github/workflows/golangci-lint.yml`). When bumping one, bump the others too.
+
 ## Commands
 
 ```bash
