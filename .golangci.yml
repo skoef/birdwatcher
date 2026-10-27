@@ -1687,7 +1687,6 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(gitlab.com/maxem)
         - localmodule
       custom-order: true
       no-lex-order: false
